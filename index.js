@@ -289,7 +289,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
                            }
                          });
                        }
-                     });
+                     }); 
                      arr3.push(ob)
                        //console.log(item[0]);
                    });
