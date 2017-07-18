@@ -2,7 +2,7 @@
 const PSI_ROZA = {
   LOGIN: "3554678395",
   HOST: "http://194.186.207.23",
-  HOST_BLOCK: "http://194.186.207.23:9999",
+  HOST_BLOCK: "http://194.186.207.23",
   SMS_PASS: "55098",
   mGUID: "4856a406c200643f529efd6fe5e90fae",
   token: "59821587bc4405b466f4fc6e731efa16",
@@ -270,45 +270,73 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
         var value = this.event.request.intent.slots.hi.value;
 
         switch (value) {
-          case "history":
-            conn.then(() => {
-                return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-                  "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
-                ).then(res => {
-                  return res
-                });
-
-
-              }).then((res) => {
-
-                var obj = parse(res.data);
-
-                var str = "";
-                var shuffledMultipleChoiceList = [];
-                var arr = ["id", "description", "categoryName", "amount"];
-                var myobj = t(obj.root, 'operation', arr);
-
-                myobj.operations.forEach(function(item, i) {
-                  str = "id = " + item.id + " description = " +
-                    item.description + " categoryName = " + item.categoryName +
-                    " amount = " + item.amount;
-                  shuffledMultipleChoiceList.push(str);
-
-                });
+          case "calendar on date":
 
 
 
-                console.log(shuffledMultipleChoiceList);
-                this.emit(':ask', value + "1", value);
-                //  resolve(shuffledMultipleChoiceList)
-                //resolve(shuffledMultipleChoiceList);
-              })
-              .catch(res => {
-                this.emit(':ask', "error", value);
-                // reject(0);
-                //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+
+          conn.then(() => {
+            return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+                "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
+              ).then(res => {
+                //console.log(res.data);
+                return res
               });
 
+
+            }).then((res) => {
+
+              var obj = parse(res.data);
+
+              var str = "";
+              var s = "";
+              var shuffledMultipleChoiceList = [];
+
+
+              var arr = ["id", "description", "categoryName", "amount"];
+              var myobj = t(obj.root, 'operation', arr);
+
+              myobj.operations.forEach(function(item, i) {
+              str=item.description ;
+                  shuffledMultipleChoiceList.push(item.id+" | "+item.categoryName+" | "+item.amount+" | "+str.replace(/[^\d\sA-Z]/gi,""));
+
+              });
+
+
+              //.console.log(shuffledMultipleChoiceList);
+              var str = "";
+              shuffledMultipleChoiceList.forEach(function(item, i) {
+              str+=item+"<br/>";
+              });
+console.log(str);
+              var content = {
+               "hasDisplaySpeechOutput" : "speechOutput",
+               "hasDisplayRepromptText" : "randomFact1",
+               "simpleCardTitle" :'SKILL_NAME',
+               "simpleCardContent" : "res",
+               "bodyTemplateTitle" : 'Payments:',
+               "bodyTemplateContent" : str,
+               "templateToken" : "factBodyTemplate",
+               "askOrTell" : ":tell",
+               "sessionAttributes": {
+                 "STATE": states.STARTMODE
+               }
+            };
+
+              renderTemplate.call(this, content);
+
+
+
+              // console.log(shuffledMultipleChoiceList);
+              // this.emit(':ask', value + "1", value);
+              //  resolve(shuffledMultipleChoiceList)
+              //resolve(shuffledMultipleChoiceList);
+            })
+            .catch(res => {
+
+              // reject(0);
+              //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+            });
             break;
           case "diagram":
             this.emit(':ask', value, value);
