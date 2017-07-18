@@ -2,7 +2,7 @@
 const PSI_ROZA = {
   LOGIN: "3554678395",
   HOST: "http://194.186.207.23",
-  HOST_BLOCK: "http://194.186.207.23:9999",
+  HOST_BLOCK: "http://194.186.207.23",
   SMS_PASS: "55098",
   mGUID: "4856a406c200643f529efd6fe5e90fae",
   token: "59821587bc4405b466f4fc6e731efa16",
@@ -98,6 +98,42 @@ var connect = function(){
 
     });
 }
+
+
+var t = function(objroot,val,arr) {
+
+         var myobj = {
+           operations: []
+
+         };
+         (function k(obj) {
+
+           if (Array.isArray(obj)) {
+
+             obj.forEach(function(item, i) {
+               k(item);
+             });
+           } else {
+
+             if (obj.name == val) {
+               var o = {};
+               obj.children.forEach(function(item, i) {
+                 for (var i = 0; i < arr.length; i++) {
+                   if (item.name == arr[i] ) o[arr[i]]= item.content;
+
+                 }
+               });
+               myobj.operations.push(o)
+             } else {
+               k(obj.children)
+             }
+
+
+           }
+         })(objroot);
+         return myobj;
+       };
+
 
 
 exports.handler = function(event, context, callback) {
@@ -220,6 +256,59 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
       },
 
       'HelloWorldIntent': function() {
+        var value = this.event.request.intent.slots.hi.value;
+        switch (value) {
+        case "diagram":
+          this.emit(':ask', value, value);
+          break;
+        case "calendar":
+
+
+        conn.then(() => {
+          return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+              "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
+          ).then(res => {
+            return res
+          });
+
+
+        }).then((res) => {
+
+          var obj = parse(res.data);
+
+               var str = "";
+               var shuffledMultipleChoiceList = [];
+               var arr = ["id", "description", "categoryName", "amount"];
+               var myobj = t(obj.root, 'operation', arr);
+
+               myobj.operations.forEach(function(item, i) {
+               str="id = " + item.id + " description = " +
+                   item.description + " categoryName = " + item.categoryName +
+                   " amount = " + item.amount;
+                   shuffledMultipleChoiceList.push(str);
+
+               });
+
+
+
+               console.log(shuffledMultipleChoiceList);
+               this.emit(':ask', value+"1", value);
+             //  resolve(shuffledMultipleChoiceList)
+          //resolve(shuffledMultipleChoiceList);
+        })
+        .catch(res => {
+
+          // reject(0);
+          //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+        });
+
+                  break;
+                  case "calendar for day":
+                    this.emit(':ask', value, value);
+                    break;
+                  default:
+                    this.emit(':ask', "nothing", "nothing");
+                }
 
 
         var promise = new Promise(function(resolve, reject) {
@@ -289,7 +378,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
                            }
                          });
                        }
-                     }); 
+                     });
                      arr3.push(ob)
                        //console.log(item[0]);
                    });
