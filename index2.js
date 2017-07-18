@@ -116,6 +116,18 @@ var t = function(objroot,val,arr) {
              if (obj.name == val) {
                var o = {};
                obj.children.forEach(function(item, i) {
+
+                 if (item.name == 'operationAmount') {
+                   item.children.forEach(function(item2, i2) {
+                     if (item2.name == 'amount') {
+                       o.amount = item2.content;
+                     }
+                     if (item2.name == 'currency') {
+                       o.code = item2.children[0].content;
+                     }
+                   });
+                 }else
+
                  for (var i = 0; i < arr.length; i++) {
                    if (item.name == arr[i] ) o[arr[i]]= item.content;
 
@@ -132,13 +144,54 @@ var t = function(objroot,val,arr) {
          return myobj;
        };
 
+       conn.then(() => {
+         return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+             "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
+
+        //  return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+        //      "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
+         ).then(res => {
+           return res
+         });
 
 
+       }).then((res) => {
+
+         var obj = parse(res.data);
+
+              var str = "";
+              var shuffledMultipleChoiceList = [];
+
+
+              var arr = ["id", "description", "categoryName", "amount"];
+              var myobj = t(obj.root, 'operation', arr);
+
+              myobj.operations.forEach(function(item, i) {
+              str="id = " + item.id + " description = " +
+                  item.description + " categoryName = " + item.categoryName +
+                  " amount = " + item.amount;
+                  shuffledMultipleChoiceList.push(str);
+
+              });
+
+
+              console.log(shuffledMultipleChoiceList);
+            //  resolve(shuffledMultipleChoiceList)
+         //resolve(shuffledMultipleChoiceList);
+       })
+       .catch(res => {
+
+         // reject(0);
+         //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+       });
        //var promise = new Promise(function(resolve, reject) {
-
+/*
            conn.then(() => {
              return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-                 "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
+               "/private/payments/list.do?from=8.11.2015&to=31.3.2018&paginationSize=20&paginationOffset=0"
+
+            //  return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+            //      "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
              ).then(res => {
                return res
              });
@@ -150,13 +203,15 @@ var t = function(objroot,val,arr) {
 
                   var str = "";
                   var shuffledMultipleChoiceList = [];
-                  var arr = ["id", "description", "categoryName", "amount"];
+
+
+                  var arr = ["type", "form", "date", "operationAmount"];
                   var myobj = t(obj.root, 'operation', arr);
 
                   myobj.operations.forEach(function(item, i) {
-                  str="id = " + item.id + " description = " +
-                      item.description + " categoryName = " + item.categoryName +
-                      " amount = " + item.amount;
+                  str="type = " + item.type + " form = " +
+                      item.form + " date = " + item.date +
+                      " amount = " + item.amount + " code = " + item.code;
                       shuffledMultipleChoiceList.push(str);
 
                   });
@@ -172,80 +227,4 @@ var t = function(objroot,val,arr) {
              // reject(0);
              //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
            });
-
-//        });
-//
-//        promise.then(res => {
-//
-// console.log(res);
-//
-//
-//
-//      }).catch(res => {
-//
-//        });
-
-
-
-
-
-/*
-conn.then(() => {
-
-  return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-      "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
-
-    ).then(res => {
-
-      var promise = new Promise(function(resolve, reject) {
-        var obj = parse(res.data);
-        //
-        // console.log(inspect(obj.root, {
-        //   colors: true,
-        //   depth: Infinity
-        // }));
-
-
-
-        //console.log(myobj.arr[0]);
-
-
-        var myobj = t(obj.root);
-
-
-        myobj.operations.forEach(function(item, i) {
-          console.log("id = " + item.id + " description = " +
-            item.description + " categoryName = " + item.categoryName +
-            " amount = " + item.amount);
-
-        });
-
-
-
-        resolve(1);
-        reject(0);
-
-
-      });
-
-      return promise.then(res => {
-        return res
-      }).catch(res => {
-        return res
-      });
-
-
-    }).then(res => {
-      //res.forEach(function(item, i) {
-      //  console.log(item)
-    })
-    .catch(function(error) {
-
-      console.log("error" + error)
-    });
-
-
-}).catch(err => {
-  console.log(err);
-})
 */

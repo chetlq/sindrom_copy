@@ -99,7 +99,6 @@ var connect = function(){
     });
 }
 
-
 var t = function(objroot,val,arr) {
 
          var myobj = {
@@ -118,6 +117,18 @@ var t = function(objroot,val,arr) {
              if (obj.name == val) {
                var o = {};
                obj.children.forEach(function(item, i) {
+
+                 if (item.name == 'operationAmount') {
+                   item.children.forEach(function(item2, i2) {
+                     if (item2.name == 'amount') {
+                       o.amount = item2.content;
+                     }
+                     if (item2.name == 'currency') {
+                       o.code = item2.children[0].content;
+                     }
+                   });
+                 }else
+
                  for (var i = 0; i < arr.length; i++) {
                    if (item.name == arr[i] ) o[arr[i]]= item.content;
 
@@ -258,6 +269,46 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
       'HelloWorldIntent': function() {
         var value = this.event.request.intent.slots.hi.value;
         switch (value) {
+          case "history":
+          conn.then(() => {
+            return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+                "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
+            ).then(res => {
+              return res
+            });
+
+
+          }).then((res) => {
+
+            var obj = parse(res.data);
+
+                 var str = "";
+                 var shuffledMultipleChoiceList = [];
+                 var arr = ["id", "description", "categoryName", "amount"];
+                 var myobj = t(obj.root, 'operation', arr);
+
+                 myobj.operations.forEach(function(item, i) {
+                 str="id = " + item.id + " description = " +
+                     item.description + " categoryName = " + item.categoryName +
+                     " amount = " + item.amount;
+                     shuffledMultipleChoiceList.push(str);
+
+                 });
+
+
+
+                 console.log(shuffledMultipleChoiceList);
+                 this.emit(':ask', value+"1", value);
+               //  resolve(shuffledMultipleChoiceList)
+            //resolve(shuffledMultipleChoiceList);
+          })
+          .catch(res => {
+            this.emit(':ask', "error", value);
+            // reject(0);
+            //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+          });
+
+            break;
         case "diagram":
           this.emit(':ask', value, value);
           break;
@@ -266,7 +317,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
         conn.then(() => {
           return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-              "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
+            "/private/payments/list.do?from=8.11.2015&to=31.3.2018&paginationSize=20&paginationOffset=0"
           ).then(res => {
             return res
           });
@@ -278,13 +329,13 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
                var str = "";
                var shuffledMultipleChoiceList = [];
-               var arr = ["id", "description", "categoryName", "amount"];
+               var arr = ["type", "form", "date", "operationAmount"];
                var myobj = t(obj.root, 'operation', arr);
 
                myobj.operations.forEach(function(item, i) {
-               str="id = " + item.id + " description = " +
-                   item.description + " categoryName = " + item.categoryName +
-                   " amount = " + item.amount;
+               str="type = " + item.type + " form = " +
+                   item.form + " date = " + item.date +
+                   " amount = " + item.amount + " code = " + item.code;
                    shuffledMultipleChoiceList.push(str);
 
                });
@@ -700,7 +751,7 @@ function renderTemplate (content) {
            break;
 
        case "MultipleChoiceListView":
-       console.log ("listItems "+JSON.stringify(content.listItems));
+       //console.log ("listItems "+JSON.stringify(content.listItems));
        var response = {
           "version": "1.0",
           "response": {
