@@ -99,6 +99,52 @@ var connect = function(){
     });
 }
 
+var t = function(objroot,val,arr) {
+
+         var myobj = {
+           operations: []
+
+         };
+         (function k(obj) {
+
+           if (Array.isArray(obj)) {
+
+             obj.forEach(function(item, i) {
+               k(item);
+             });
+           } else {
+
+             if (obj.name == val) {
+               var o = {};
+               obj.children.forEach(function(item, i) {
+
+                 if (item.name == 'operationAmount') {
+                   item.children.forEach(function(item2, i2) {
+                     if (item2.name == 'amount') {
+                       o.amount = item2.content;
+                     }
+                     if (item2.name == 'currency') {
+                       o.code = item2.children[0].content;
+                     }
+                   });
+                 }else
+
+                 for (var i = 0; i < arr.length; i++) {
+                   if (item.name == arr[i] ) o[arr[i]]= item.content;
+
+                 }
+               });
+               myobj.operations.push(o)
+             } else {
+               k(obj.children)
+             }
+
+
+           }
+         })(objroot);
+         return myobj;
+       };
+
 
 exports.handler = function(event, context, callback) {
   var alexa = Alexa.handler(event, context);
@@ -221,147 +267,186 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
       'HelloWorldIntent': function() {
 
+        var value = this.event.request.intent.slots.hi.value;
 
-        var promise = new Promise(function(resolve, reject) {
-
+        switch (value) {
+          case "history":
             conn.then(() => {
-              return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-                "/private/payments/list.do?from=8.11.2015&to=31.3.2018&paginationSize=20&paginationOffset=0"
-              ).then(res => {
-                return res
+                return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+                  "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
+                ).then(res => {
+                  return res
+                });
+
+
+              }).then((res) => {
+
+                var obj = parse(res.data);
+
+                var str = "";
+                var shuffledMultipleChoiceList = [];
+                var arr = ["id", "description", "categoryName", "amount"];
+                var myobj = t(obj.root, 'operation', arr);
+
+                myobj.operations.forEach(function(item, i) {
+                  str = "id = " + item.id + " description = " +
+                    item.description + " categoryName = " + item.categoryName +
+                    " amount = " + item.amount;
+                  shuffledMultipleChoiceList.push(str);
+
+                });
+
+
+
+                console.log(shuffledMultipleChoiceList);
+                this.emit(':ask', value + "1", value);
+                //  resolve(shuffledMultipleChoiceList)
+                //resolve(shuffledMultipleChoiceList);
+              })
+              .catch(res => {
+                this.emit(':ask', "error", value);
+                // reject(0);
+                //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
               });
 
-
-            }).then((res) => {
-
-              var obj = parse(res.data);
-
-
-
+            break;
+          case "diagram":
+            this.emit(':ask', value, value);
+            break;
+          case "history as list":
 
 
-              var arr2 = [];
-              var myobj = {};
-              var k = function(obj) {
+            conn.then(() => {
+                return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+                  "/private/payments/list.do?from=8.11.2015&to=31.3.2018&paginationSize=20&paginationOffset=0"
+                ).then(res => {
+                  return res
+                });
 
-                if (Array.isArray(obj)) {
 
-                  obj.forEach(function(item, i) {
-                    k(item);
-                  });
-                } else {
-                  if (obj.name == 'operation') {
-                    //console.log(obj.children[1]);
-                    arr2.push(obj.children)
-                  } else {
-                    k(obj.children)
+              }).then((res) => {
+
+                var obj = parse(res.data);
+
+                var shuffledMultipleChoiceList = [];
+                var arr = ["type", "form", "date", "operationAmount"];
+                var myobj = t(obj.root, 'operation', arr);
+
+                myobj.operations.forEach(function(item, i) {
+                  var str = "<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0] +
+                    " | " + item.amount + " | " + item.code ;
+                  shuffledMultipleChoiceList.push(str);
+
+                });
+
+                let listItems = shuffledMultipleChoiceList.map((name,i) => {
+                  return {
+                    "token": i+"tok",
+
+                    "textContent": {
+                      "primaryText": {
+                        "type": "RichText",
+                        "text": "<font size='2'>" + name + "</font> "
+                      }
+
+                    }
                   }
-                }
-              };
-
-
-              //console.log(obj.root);
-              k(obj.root);
-
-              //console.log(arr2[0][0]);
-
-
-              var arr3 = [];
-                   arr2.forEach(function(item, i) {
-                     var ob = {};
-                     item.forEach(function(item2, i2) {
-                       if (item2.name == 'type') {
-                         ob.type = item2.content
-                       }
-                       if (item2.name == 'form') {
-                         ob.form = item2.content
-                       }
-                       if (item2.name == 'date') {
-                         ob.date = item2.content
-                       }
-                       if (item2.name == 'operationAmount') {
-                         item2.children.forEach(function(item3, i3) {
-                           if (item3.name == 'amount') {
-                             ob.amount = item3.content;
-                           }
-                           if (item3.name == 'currency') {
-                             ob.code = item3.children[0].content;
-                           }
-                         });
-                       }
-                     });
-                     arr3.push(ob)
-                       //console.log(item[0]);
-                   });
-                   var str = "";
-                   var shuffledMultipleChoiceList = [];
-
-                   arr3.forEach(function(item, i) {
-
-                    //  var date2 =  new Date(date.getFullYear(), date.getMonth(), date.getDate())
-                    //.split(T)[0]
-
-                     var str = "<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0] +
-                       " | " + item.amount + " | " + item.code ;
-                       shuffledMultipleChoiceList.push(str);
-                   });
-
-                   //console.log(str);
-                   resolve(shuffledMultipleChoiceList)
-              //resolve(shuffledMultipleChoiceList);
-            })
-            .catch(res => {
-              reject(0);
-              // reject(0);
-              //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
-            });
-
-        });
-
-        promise.then(res => {
-
-          let listItems = res.map((x) => {
-            return {
-              "token": x,
-
-              "textContent": {
-                "primaryText": {
-                  "type": "RichText",
-                  "text": "<font size='2'>" + x + "</font> "
-                }
-
-              }
-            }
-          });
+                });
 
 
 
-          let content = {
-                "hasDisplaySpeechOutput" : "speech",
-                "hasDisplayRepromptText" : "question",
-                "noDisplaySpeechOutput" : "speech",
-                "noDisplayRepromptText" : "question",
-                "simpleCardTitle" : getCardTitle(),
-                "simpleCardContent" : "getTextDescription",
-                "listTemplateTitle" : getCardTitle(),
-                //"listTemplateContent" : getTextDescription(item),
-                "templateToken" : "MultipleChoiceListView",
-                "askOrTell": ":ask",
-                "listItems" : listItems,
-                "hint" : "Add a hint here",
-                "sessionAttributes": {
-                  "STATE": states.STARTMODE
-                }
-            };
+                let content = {
+                      "hasDisplaySpeechOutput" : value,
+                      "hasDisplayRepromptText" : "question",
+                      "noDisplaySpeechOutput" : value,
+                      "noDisplayRepromptText" : "question",
+                      "simpleCardTitle" : getCardTitle(),
+                      "simpleCardContent" : "getTextDescription",
+                      "listTemplateTitle" : getCardTitle(),
+                      //"listTemplateContent" : getTextDescription(item),
+                      "templateToken" : "MultipleChoiceListView",
+                      "askOrTell": ":ask",
+                      "listItems" : listItems,
+                      "hint" : "Add a hint here",
+                      "sessionAttributes": {
+                        "STATE": states.STARTMODE
+                      }
+                  };
 
-          renderTemplate.call(this, content);
+                renderTemplate.call(this, content);
 
 
-  //this.emit(':tellWithCard',"res", "cardTitle","res");
-}).catch(res => {
-          //this.emit(':tellWithCard',res, cardTitle,res, imageObj);
-        });
 
+                // console.log(shuffledMultipleChoiceList);
+                // this.emit(':ask', value + "1", value);
+                //  resolve(shuffledMultipleChoiceList)
+                //resolve(shuffledMultipleChoiceList);
+              })
+              .catch(res => {
+
+                // reject(0);
+                //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+              });
+            break;
+            case "history as text":
+              conn.then(() => {
+                  return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+                    "/private/payments/list.do?from=8.11.2015&to=31.3.2018&paginationSize=20&paginationOffset=0"
+                  ).then(res => {
+                    return res
+                  });
+
+
+                }).then((res) => {
+
+                  var obj = parse(res.data);
+
+                  var shuffledMultipleChoiceList = [];
+                  var arr = ["type", "form", "date", "operationAmount"];
+                  var myobj = t(obj.root, 'operation', arr);
+                  var str = "";
+                  myobj.operations.forEach(function(item, i) {
+                    str +="<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0]+ " | " + item.amount + " | " + item.code +"<br/>" ;
+
+
+                  });
+
+                  var content = {
+                   "hasDisplaySpeechOutput" : "speechOutput",
+                   "hasDisplayRepromptText" : "randomFact1",
+                   "simpleCardTitle" :'SKILL_NAME',
+                   "simpleCardContent" : "res",
+                   "bodyTemplateTitle" : 'Payments:',
+                   "bodyTemplateContent" : str,
+                   "templateToken" : "factBodyTemplate",
+                   "askOrTell" : ":tell",
+                   "sessionAttributes": {
+                     "STATE": states.STARTMODE
+                   }
+                };
+
+                  renderTemplate.call(this, content);
+
+
+
+                  // console.log(shuffledMultipleChoiceList);
+                  // this.emit(':ask', value + "1", value);
+                  //  resolve(shuffledMultipleChoiceList)
+                  //resolve(shuffledMultipleChoiceList);
+                })
+                .catch(res => {
+
+                  // reject(0);
+                  //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+                });
+              break;
+
+          case "calendar for day":
+            this.emit(':ask', value, value);
+            break;
+          default:
+            this.emit(':ask', "nothing", "nothing");
+        }
 
 
 
@@ -371,136 +456,6 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
 
   travelintent: function()  {
-
-
-    var promise = new Promise(function(resolve, reject) {
-
-        conn.then(() => {
-          return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-            "/private/payments/list.do?from=08.11.2015&to=31.03.2018&paginationSize=20&paginationOffset=0"
-          ).then(res => {
-            return res
-          });
-
-
-        }).then((res) => {
-
-          var obj = parse(res.data);
-
-
-
-
-
-          var arr2 = [];
-          var myobj = {};
-          var k = function(obj) {
-
-            if (Array.isArray(obj)) {
-
-              obj.forEach(function(item, i) {
-                k(item);
-              });
-            } else {
-              if (obj.name == 'operation') {
-                //console.log(obj.children[1]);
-                arr2.push(obj.children)
-              } else {
-                k(obj.children)
-              }
-            }
-          };
-
-
-          //console.log(obj.root);
-          k(obj.root);
-
-          //console.log(arr2[0][0]);
-
-
-          var arr3 = [];
-               arr2.forEach(function(item, i) {
-                 var ob = {};
-                 item.forEach(function(item2, i2) {
-                   if (item2.name == 'type') {
-                     ob.type = item2.content
-                   }
-                   if (item2.name == 'form') {
-                     ob.form = item2.content
-                   }
-                   if (item2.name == 'date') {
-                     ob.date = item2.content
-                   }
-                   if (item2.name == 'operationAmount') {
-                     item2.children.forEach(function(item3, i3) {
-                       if (item3.name == 'amount') {
-                         ob.amount = item3.content;
-                       }
-                       if (item3.name == 'currency') {
-                         ob.code = item3.children[0].content;
-                       }
-                     });
-                   }
-                 });
-                 arr3.push(ob)
-                   //console.log(item[0]);
-               });
-               var str = "";
-
-
-               arr3.forEach(function(item, i) {
-
-                //  var date2 =  new Date(date.getFullYear(), date.getMonth(), date.getDate())
-                //.split(T)[0]
-                //"<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0] +
-                //  " | " + item.amount + " | " + item.code
-                 str +="<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0]+ " | " + item.amount + " | " + item.code +"<br/>" ;
-               });
-console.log(str);
-
-resolve(str);
-               //console.log(str);
-
-
-          //resolve(shuffledMultipleChoiceList);
-        })
-          .catch(res => {
-          reject(0);
-          // reject(0);
-          //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
-        });
-
-    });
-
-    promise.then(res => {
-
-
-//this.emit(':tellWithCard',"res", "cardTitle",res);
-
-      // if(supportsDisplay.call(this)||isSimulator.call(this)) {
-        var content = {
-         "hasDisplaySpeechOutput" : "speechOutput",
-         "hasDisplayRepromptText" : "randomFact1",
-         "simpleCardTitle" :'SKILL_NAME',
-         "simpleCardContent" : "res",
-         "bodyTemplateTitle" : 'Payments:',
-         "bodyTemplateContent" : res,
-         "templateToken" : "factBodyTemplate",
-         "askOrTell" : ":tell",
-         "sessionAttributes": {
-           "STATE": states.STARTMODE
-         }
-      };
-      renderTemplate.call(this, content);
-    // } else {
-    //   this.emit(':tellWithCard',"res", "cardTitle","res");
-    // }
-
-
-//this.emit(':tellWithCard',"res", "cardTitle","res");
-}).catch(res => {
-     this.emit(':tellWithCard',"res", "cardTitle","error");
-    });
-
 
 
 
