@@ -24,7 +24,6 @@ const GLOBALS = {
 var USE_IMAGES_FLAG = true;
 
 function getCardTitle() { return "cardtitle";}
-
 var iconv = require('iconv-lite');
 var Alexa = require("alexa-sdk");
 var parse = require('xml-parser');
@@ -44,16 +43,13 @@ var instance = axios.create({
   timeout: 30000,
   jar: cookieJar, // tough.CookieJar or boolean
   withCredentials: true,
-  responseType:'stream',
   headers: {
-    'Content-Language':'ru',
     'Accept-Language': 'ru;q=1',
-    'Content-Type': 'text/xml;charset=windows-1251',
+    'Content-Type': 'application/x-www-form-urlencoded',
     'User-Agent': 'Mobile Device'
 
   }
 });
-
 
 var autpip = function(addr) {
   var promise = new Promise(function(resolve, reject) {
@@ -124,6 +120,55 @@ return res;
 });
 };
 
+
+
+
+// var aut = function(addr) {
+//   return instance.post(addr)
+// };
+//
+//
+// var connect = function(){
+//   return aut(PSI_ROZA.HOST +
+//       '/CSAMAPI/registerApp.do?operation=register&login=' + PSI_ROZA.LOGIN +
+//       '&version=' + GLOBALS.VERSION +
+//       '.10&appType=iPhone&appVersion=5.5.0&deviceName=Simulator&devID=' +
+//       GLOBALS.DEVID).then(res => {
+//       var obj = parse(res.data);
+//       //console.log(obj);
+//       //console.log(obj['root']['children'][0]['children'][0]['content']);
+//       return obj['root']['children'][2]['children'][0]['content'];
+//
+//     }).then(mGUID => {
+//       return aut(PSI_ROZA.HOST +
+//         "/CSAMAPI/registerApp.do?operation=confirm&mGUID=" +
+//         mGUID + "&smsPassword=" + PSI_ROZA.SMS_PASS + "&version=" + GLOBALS.VERSION +
+//         ".10&appType=iPhone").then(() => {
+//         return mGUID;
+//       })
+//
+//     }).then(mGUID => {
+//
+//       return aut(PSI_ROZA.HOST +
+//         "/CSAMAPI/registerApp.do?operation=createPIN&mGUID=" +
+//         mGUID + "&password=" + PSI_ROZA.PASS + "&version=" + GLOBALS.VERSION +
+//         ".10&appType=iPhone" +
+//         "&appVersion=5.5.0&deviceName=Simulator&isLightScheme=false&devID=" +
+//         GLOBALS.DEVID + "&mobileSdkData=1").then(res => {
+//         var obj = parse(res.data);
+//         //console.log(res.data);
+//         var v2 = obj['root']['children'][2]['children'][1]['content'];
+//
+//         return v2;
+//       })
+//
+//     }).then(token => {
+//
+//       return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+//         "/postCSALogin.do?token=" + token).then(res => {})
+//
+//     });
+// }
 
 var t = function(objroot,val,arr) {
 
@@ -315,8 +360,8 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
               var myobj = t(obj.root, 'operation', arr);
 
               myobj.operations.forEach(function(item, i) {
-              str=item.description.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"") ;
-                  shuffledMultipleChoiceList.push(item.amount+" ₽| "+item.categoryName+" | "+str);
+              //str=item.description.replace(/[^\d\sA-Z]/gi,"") ;
+                  shuffledMultipleChoiceList.push(item.id+" | "+item.categoryName+" | "+item.amount+" | "+item.description);
 
               });
 
