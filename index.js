@@ -171,6 +171,32 @@ var t = function(objroot,val,arr) {
          return myobj;
        };
 
+var mydate = function(slotValuefrom,slotValueto){
+  var data = new Array();
+
+  if ((slotValuefrom != undefined) && (slotValueto != undefined)) {
+
+    var eventDatefrom =  calendar.getDateFromSlot(slotValuefrom);
+    var eventDateto =  calendar.getDateFromSlot(slotValueto);
+
+    var start = {
+      year:new Date(eventDatefrom.startDate).getFullYear(),
+      month : (new Date(eventDatefrom.startDate).getMonth())+1,
+      day :new Date(eventDatefrom.startDate).getDate(),
+    };
+    var end = {
+      year:new Date(eventDateto.endDate).getFullYear(),
+      month : (new Date(eventDateto.endDate).getMonth())+1,
+      day :new Date(eventDateto.endDate).getDate(),
+    };
+    var startstr = start.day+"."+start.month+"."+start.year ;
+    var endstr = end.day+"."+end.month+"."+end.year ;
+    data.push(startstr);
+    data.push(endstr);
+    return data;
+}else{return null}};
+
+
 
 exports.handler = function(event, context, callback) {
   var alexa = Alexa.handler(event, context);
@@ -205,29 +231,15 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
       },
       'eventIntent': function() {
         this.handler.state = states.STARTMODE;
-        var eventList = new Array();
+
         var slotValuefrom = this.event.request.intent.slots.datefrom.value;
         var slotValueto = this.event.request.intent.slots.dateto.value;
 
-        if ((slotValuefrom != undefined) && (slotValueto != undefined)) {
-          var parent = this;
-
-          var eventDatefrom =  calendar.getDateFromSlot(slotValuefrom);
-          var eventDateto =  calendar.getDateFromSlot(slotValueto);
-
-          var start = {
-            year:new Date(eventDatefrom.startDate).getFullYear(),
-            month : new Date(eventDatefrom.startDate).getMonth(),
-            day :new Date(eventDatefrom.startDate).getDate(),
-          };
-          var end = {
-            year:new Date(eventDateto.endDate).getFullYear(),
-            month : new Date(eventDateto.endDate).getMonth(),
-            day :new Date(eventDateto.endDate).getDate(),
-          };
-          var startstr = start.day+"."+start.month+"."+start.year ;
-          var endstr = end.day+"."+end.month+"."+end.year ;
-          var str = "start: "+startstr+" - end: " + endstr;
+         var arr = mydate(slotValuefrom,slotValueto);
+         if (arr !== null){
+          this.attributes['startstr'] = arr[0];
+          this.attributes['endstr'] = arr[1];
+          var str = "start: "+arr[0]+" - end: " + arr[1];
           this.emit(':askWithCard', 123, "haveEventsRepromt", "cardTitle", str);
           //  this.emit(':ask', "start: "+new Date(eventDate.startDate)+" - end: " + new Date(eventDate.endDate), HelpMessage);
         } else {
@@ -238,29 +250,15 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
       'searchIntent': function () {
               this.handler.state = states.STARTMODE;
-            var eventList = new Array();
+
               var slotValue = this.event.request.intent.slots.date.value;
-              if (slotValue != undefined)
-              {
 
-
-                  var eventDate = calendar.getDateFromSlot(slotValue);
-
-                //  this.emit(':ask', "start: "+new Date(eventDate.startDate)+" - end: " + new Date(eventDate.endDate), HelpMessage);
-                var start = {
-                  year:new Date(eventDate.startDate).getFullYear(),
-                  month : new Date(eventDate.startDate).getMonth(),
-                  day :new Date(eventDate.startDate).getDate(),
-                };
-                var end = {
-                  year:new Date(eventDate.endDate).getFullYear(),
-                  month : new Date(eventDate.endDate).getMonth(),
-                  day :new Date(eventDate.endDate).getDate(),
-                };
-                var startstr = start.day+"."+start.month+"."+start.year;
-                var endstr = end.day+"."+end.month+"."+end.year;
-                var str = "start: "+startstr+" - end: " + endstr;
-                this.emit(':askWithCard', eventDate.res, "haveEventsRepromt", "cardTitle", str);
+              var arr = mydate(slotValue,slotValue);
+              if (arr !== null){
+                 this.attributes['startstr'] = arr[0];
+                 this.attributes['endstr'] = arr[1];
+                this.attributes['ondate'] = arr[0];
+                this.emit(':askWithCard', this.attributes['ondate'], "haveEventsRepromt", "cardTitle", this.attributes['ondate']);
 
               }
               else {
@@ -270,12 +268,13 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
       'SayHello': function(){
         //this.handler.state = states.STARTMODE;
+
         var response = {
           "version": "1.0",
           "response": {
             "outputSpeech": {
               "type": "SSML",
-              "ssml": "<speak>3333  </speak>"
+              "ssml": "<speak>"+this.attributes['startstr'] +" : "+this.attributes['endstr']+"  </speak>"
             },
             "speechletResponse": {
               "outputSpeech": {
@@ -298,10 +297,13 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
         switch (value) {
           case "calendar on date":
-
+          if (typeof this.attributes['ondate'] == 'undefined') { // Check if it's the first time the skill has been invoked
+            this.attributes['ondate'] = "03.03.2017";
+          }
           conn.then(() => {
+
             return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-                "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
+                "/private/finances/financeCalendar/showSelected.do?onDate="+this.attributes['ondate']+"&selectedCardIds=552280"
               ).then((res) => {
 
               var obj = parse(res);
@@ -361,11 +363,16 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
             this.emit(':ask', value, value);
             break;
           case "history as list":
-
+          if ((typeof this.attributes['startstr'] == 'undefined') || (typeof this.attributes['endstr'] == 'undefined')) { // Check if it's the first time the skill has been invoked
+            this.attributes['startstr'] = "8.11.2015";
+            this.attributes['endstr'] = "31.3.2018";
+          }
 
             conn.then(() => {
+
+
                 return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-                  "/private/payments/list.do?from=8.11.2015&to=31.3.2018&paginationSize=20&paginationOffset=0"
+                  "/private/payments/list.do?from="+this.attributes['startstr']+"&to="+this.attributes['endstr']+"&paginationSize=20&paginationOffset=0"
                 ).then((res) => {
 
                 var obj = parse(res);
@@ -432,9 +439,13 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
             });
             break;
             case "history as text":
+            if ((typeof this.attributes['startstr'] == 'undefined') || (typeof this.attributes['endstr'] == 'undefined')) { // Check if it's the first time the skill has been invoked
+              this.attributes['startstr'] = "8.11.2015";
+              this.attributes['endstr'] = "31.3.2018";
+            }
               conn.then(() => {
                   return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-                    "/private/payments/list.do?from=8.11.2015&to=31.3.2018&paginationSize=20&paginationOffset=0"
+                    "/private/payments/list.do?from="+this.attributes['startstr']+"&to="+this.attributes['endstr']+"&paginationSize=20&paginationOffset=0"
                   ).then((res) => {
 
                   var obj = parse(res);

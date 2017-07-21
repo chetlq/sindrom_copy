@@ -53,12 +53,23 @@ var calendar = function(){
         eventDate["res"] = res.length;
       }
       else if (res.length === 2  && res[1].indexOf('FA') == -1 && res[1].indexOf('WI') == -1 && res[1].indexOf('SP') == -1 && res[1].indexOf('SU') == -1) {
-          eventDate["startDate"] = new Date(date).setUTCHours(0, 0, 0, 0);
-          var endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() + getLastDayOfMonth(res[0],res[1])).setUTCHours(12, 0, 0, 0);
+           y = date.getFullYear(), m = date.getMonth();
+           var firstDay = new Date(y, m, 1);
+           var lastDay = new Date(y, m + 1, 0);
+           eventDate["startDate"] = firstDay;
+           eventDate["endDate"] = lastDay
+
+           /*
+          console.log("date "+date);
+          console.log("getMonth "+date.getMonth());
+          console.log("getLastDayOfMonth "+getLastDayOfMonth(res[0],res[1]));
+          console.log("getDate  "+date.getDate());
+          var endDate = new Date(date.getFullYear(), date.getMonth(), getLastDayOfMonth(res[0],res[1])).setUTCHours(12, 0, 0, 0);
           eventDate["endDate"] = endDate;//new Date(date).setUTCHours(24, 0, 0, 0);
           // eventDate["startDate"] = new Date(dates.startDate);
           // eventDate["endDate"] = new Date(dates.endDate);
           eventDate["res"] = res.length;
+          */
           // if we have 3 bits, we could either have a valid date (which would have parsed already) or a weekend
       } else {
         eventDate["startDate"] = new Date(date).setUTCHours(0, 0, 0, 0);
@@ -122,21 +133,21 @@ function w2date(year, wn, dayNb) {
 };
 
 // Loops though the events from the iCal data, and checks which ones are between our start data and out end date
-function getEventsBeweenDates(startDate, endDate, eventList) {
-
-    var start = new Date(startDate);
-    var end = new Date(endDate);
-
-    var data = new Array();
-
-    for (var i = 0; i < eventList.length; i++) {
-        if (start <= eventList[i].start && end >= eventList[i].start) {
-            data.push(eventList[i]);
-        }
-    }
-
-    console.log("FOUND " + data.length + " events between those times");
-    return data;
-}
+// function getEventsBeweenDates(startDate, endDate, eventList) {
+//
+//     var start = new Date(startDate);
+//     var end = new Date(endDate);
+//
+//     var data = new Array();
+//
+//     for (var i = 0; i < eventList.length; i++) {
+//         if (start <= eventList[i].start && end >= eventList[i].start) {
+//             data.push(eventList[i]);
+//         }
+//     }
+//
+//     console.log("FOUND " + data.length + " events between those times");
+//     return data;
+// }
 }
 module.exports = calendar;
