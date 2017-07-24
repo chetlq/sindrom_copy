@@ -191,8 +191,10 @@ var mydate = function(slotValuefrom,slotValueto){
     };
     var startstr = start.day+"."+start.month+"."+start.year ;
     var endstr = end.day+"."+end.month+"."+end.year ;
+    var onmonth = start.month+"."+start.year ;
     data.push(startstr);
     data.push(endstr);
+    data.push(onmonth);
     return data;
 }else{return null}};
 
@@ -258,6 +260,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
                  this.attributes['startstr'] = arr[0];
                  this.attributes['endstr'] = arr[1];
                 this.attributes['ondate'] = arr[0];
+                this.attributes['onmonth'] = arr[2];
                 this.emit(':askWithCard', this.attributes['ondate'], "haveEventsRepromt", "cardTitle", this.attributes['ondate']);
 
               }
@@ -296,6 +299,65 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
         var value = this.event.request.intent.slots.hi.value;
 
         switch (value) {
+          case "calendar on month":
+          return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+              "/private/finances/financeCalendar/show.do?operation=filter&onDate="+
+              this.attributes['onmonth']+"&showCash=false&showCashPayments=false"
+            ).then((res) => {
+
+              var obj = parse(res);
+
+              var str = "";
+              var s = "";
+              var shuffledMultipleChoiceList = [];
+
+
+              var arr = ["date", "outcome", "income"];
+              var myobj = t(obj.root, 'calendarDay', arr);
+
+              myobj.operations.forEach(function(item, i) {
+
+                  shuffledMultipleChoiceList.push(item.date+" | "+item.outcome+" ₽| "+item.income+" ₽");
+
+              });
+
+
+              //.console.log(shuffledMultipleChoiceList);
+              var str = "";
+              shuffledMultipleChoiceList.forEach(function(item, i) {
+              str+=item+"<br/>";
+              });
+              console.log(str);
+              var content = {
+               "hasDisplaySpeechOutput" : "speechOutput",
+               "hasDisplayRepromptText" : "randomFact1",
+               "simpleCardTitle" :'SKILL_NAME',
+               "simpleCardContent" : "res",
+               "bodyTemplateTitle" : 'Payments:',
+               "bodyTemplateContent" : str,
+               "templateToken" : "factBodyTemplate",
+               "askOrTell" : ":tell",
+               "sessionAttributes": {
+                 "STATE": states.STARTMODE
+               }
+            };
+
+              renderTemplate.call(this, content);
+
+
+
+              // console.log(shuffledMultipleChoiceList);
+              // this.emit(':ask', value + "1", value);
+              //  resolve(shuffledMultipleChoiceList)
+              //resolve(shuffledMultipleChoiceList);
+            })
+            .catch(res => {
+
+              // reject(0);
+              //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+            });
+
+          break;
           case "calendar on date":
           if (typeof this.attributes['ondate'] == 'undefined') { // Check if it's the first time the skill has been invoked
             this.attributes['ondate'] = "03.03.2017";
