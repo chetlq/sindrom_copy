@@ -372,7 +372,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
 
                 return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-                  "/private/payments/list.do?from="+this.attributes['startstr']+"&to="+this.attributes['endstr']+"&paginationSize=20&paginationOffset=0"
+                  "/private/payments/list.do?from="+this.attributes['startstr']+"&to="+this.attributes['endstr']+"&paginationSize=100&paginationOffset=0"
                 ).then((res) => {
 
                 var obj = parse(res);
