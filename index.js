@@ -25,6 +25,10 @@ var USE_IMAGES_FLAG = true;
 
 function getCardTitle() { return "cardtitle";}
 
+
+var Quiche = require('quiche');
+var pie = new Quiche('pie');
+
 var iconv = require('iconv-lite');
 var Alexa = require("alexa-sdk");
 var parse = require('xml-parser');
@@ -201,7 +205,22 @@ var mydate = function(slotValuefrom,slotValueto){
     data.push(onmonth);
     return data;
 }else{return null}};
+
 var conn = reg();
+
+
+var c = function(){
+  function rgb2hex(rgb){
+   rgb = rgb.match(/^[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i);
+   var c = (rgb && rgb.length === 4) ?
+    ("0" + parseInt(rgb[1],10).toString(16)).slice(-2) +
+    ("0" + parseInt(rgb[2],10).toString(16)).slice(-2) +
+    ("0" + parseInt(rgb[3],10).toString(16)).slice(-2) : '';
+   return c.toUpperCase();
+  }
+  var v = function(){ return Math.round(Math.random()*255)};
+  return rgb2hex('('+v()+', '+v()+', '+v()+')');
+}
 
 
 exports.handler = function(event, context, callback) {
@@ -220,12 +239,15 @@ var states = {
 //var conn =  connect();
 
 var newSessionHandlers = {
-
   'NewSession': function() {
     this.handler.state = states.STARTMODE;
     this.emit(':ask', 'Welcome1 ');
     //'Say yes to start the game or no to quit.
-  }
+  },
+  'Unhandled': function () {
+    //this.emitWithState('')
+    this.emit(':ask', 'HelpMessage', 'HelpMessage');
+}
 };
 
 
@@ -298,6 +320,86 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
         this.context.succeed(response);
       },
+
+      'DiagramIntent': function() {
+         var promise = new Promise(function(resolve, reject) {
+        conn.then(() => {
+
+          return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+                      "/private/graphics/finance.do"
+            ).then((res) => {
+
+
+              var obj = parse(res);
+
+              var str = "";
+              var s = "";
+              var shuffledMultipleChoiceList = [];
+
+
+              var arr = ["id", "balance"];
+              var myobj = t(obj.root, 'card', arr);
+              //console.log(myobj.operations.length);
+              var arr = [];
+              pie.setTransparentBackground();
+              pie.addPercent();
+              myobj.operations.forEach(function(item, i) {
+                var ttt = item.balance.replace(/\s/g, "");
+                pie.addData(parseInt(ttt), "id = " + item.id + " ", c());
+                arr.push(parseInt(ttt) + '');
+
+                  shuffledMultipleChoiceList.push(item.id + " | balance = " + item.balance +  " ₽");
+console.log(item.id + " | balance = " + item.balance +  " ₽");
+              });
+              pie.setLabel(arr);
+              var Url = pie.getUrl(true);
+              pie =  new Quiche('pie');
+              resolve(Url);
+              })
+              .catch(res => {
+              reject(0);
+              // reject(0);
+              //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+              });
+
+              }).catch(res => {
+              console.log(res);
+              // reject(0);
+              //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+              });;
+            });
+
+
+               promise.then(res => {
+
+                 var content = {
+                   "hasDisplaySpeechOutput": "speechOutput",
+                   "hasDisplayRepromptText": "randomFact1",
+                   "simpleCardTitle": 'SKILL_NAME',
+                   "simpleCardContent": "res",
+                   "bodyTemplateTitle": '',
+                   "bodyTemplateContent": "",
+                   "templateToken": "factBodyTemplate",
+                   "askOrTell": ":ask",
+                   "imageUrl":res,
+                   "sessionAttributes": {
+                     "STATE": states.STARTMODE
+                   }
+                 };
+                 renderTemplate2.call(this, content);
+
+
+               }).catch(res => {
+                 this.emit(':tellWithCard',res, cardTitle,res, imageObj);
+               });
+
+
+
+
+             },
+
+
+
 
       'NavigationIntent': function() {
         console.log(this.attributes['myobj']);
@@ -446,6 +548,9 @@ console.log(res);
 console.log(res);
 });
           break;
+
+
+
           case "calendar on date":
           if (typeof this.attributes['ondate'] == 'undefined') { // Check if it's the first time the skill has been invoked
             this.attributes['ondate'] = "03.03.2017";
@@ -839,4 +944,69 @@ function renderTemplate (content) {
            this.emit(':tell', "Thanks for playing, goodbye");
    }
 
+}
+
+function isSimulator() {
+  var isSimulator = !this.event.context; //simulator doesn't send context
+  return isSimulator;
+}
+
+function renderTemplate2(content) {
+
+  var response = {
+    "version": "1.0",
+    "response": {
+      "directives": [{
+        "type": "Display.RenderTemplate",
+        "template": {
+          "type": "BodyTemplate1",
+          "title": content.bodyTemplateTitle,
+          "token": content.templateToken,
+
+          "textContent": {
+            "primaryText": {
+              "type": "RichText",
+              "text": "<font size = '2'>" + content.bodyTemplateContent + "</font>"
+            }
+          },
+
+          "backButton": "HIDDEN"
+        }
+      }],
+      "outputSpeech": {
+        "type": "SSML",
+        "ssml": "<speak>" + content.hasDisplaySpeechOutput + "</speak>"
+      },
+      "reprompt": {
+        "outputSpeech": {
+          "type": "SSML",
+          "ssml": "<speak>" + content.hasDisplayRepromptText + "</speak>"
+        }
+      },
+      "shouldEndSession": content.askOrTell == ":tell",
+      "card": {
+        "type": "Simple",
+        "title": content.simpleCardTitle,
+        "content": content.simpleCardContent
+      }
+    },
+    "sessionAttributes": content.sessionAttributes
+  }
+  ;
+
+ // First param controls http vs. https
+  console.log(content.imageUrl);
+
+  let  sources= [{
+                  "size": "SMALL",
+                  "url":content.imageUrl//"https://imgs.xkcd.com/comics/standards.png"
+                },
+                {
+                  "size": "LARGE",
+                  "url": content.imageUrl//"https://imgs.xkcd.com/comics/standards.png"
+                }
+              ];
+              response["response"]["directives"][0]["template"]["backgroundImage"]={};
+              response["response"]["directives"][0]["template"]["backgroundImage"]["sources"]=sources;
+  this.context.succeed(response);
 }
