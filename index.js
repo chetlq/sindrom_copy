@@ -2,7 +2,7 @@
 const PSI_ROZA = {
   LOGIN: "3554678395",
   HOST: "http://194.186.207.23",
-  HOST_BLOCK: "http://194.186.207.23:9999",
+  HOST_BLOCK: "http://194.186.207.23",
   SMS_PASS: "55098",
   mGUID: "4856a406c200643f529efd6fe5e90fae",
   token: "59821587bc4405b466f4fc6e731efa16",
@@ -86,10 +86,22 @@ var newSessionHandlers = {
     this.handler.state = states.STARTMODE;
     this.emit(':ask', 'Welcome1 ');
     //'Say yes to start the game or no to quit.
-  }
+  },
+  'Unhandled': function () {
+    //this.emitWithState('')
+    this.emit(':ask', 'HelpMessage', 'HelpMessage');
+}
 };
 
-
+// var newSessionHandlers = {
+//     'LaunchRequest': function () {
+//         this.handler.state = states.STARTMODE;
+//         this.emit(':ask',  'Welcome1 ',  'Welcome1 ');
+//     },
+// 	'Unhandled': function() {
+// this.emit(':ask', 'Sorry I didnt understand that. Say help for assistance.');
+// },
+// };
 
 
 
@@ -106,14 +118,56 @@ var c = function(){
   return rgb2hex('('+v()+', '+v()+', '+v()+')');
 }
 
+var t = function(objroot) {
+   var myobj = {
+     cards: [],
+     accounts: []
 
+   };
+   (function k(obj) {
+
+     if (Array.isArray(obj)) {
+
+       obj.forEach(function(item, i) {
+         k(item);
+       });
+     } else {
+
+       if (obj.name == 'card') {
+         var o = {};
+         obj.children.forEach(function(item, i) {
+           if (item.name == "id") o.id = item.content;
+           if (item.name == "balance") o.balance =
+             item.content;
+         });
+         myobj.cards.push(o)
+       } else if (obj.name == 'account') {
+         var o = {};
+         obj.children.forEach(function(item, i) {
+           if (item.name == "id") o.id = item.content;
+           if (item.name == "balance") o.balance =
+             item.content;
+           if (item.name == "maxSumWrite") o.maxSumWrite =
+             item.content;
+         });
+         //console.log(obj.children[1]);
+         myobj.accounts.push(o)
+       } else {
+         k(obj.children)
+       }
+
+
+     }
+   })(objroot);
+   return myobj;
+ };
 
 var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
-  'NewSession': function() {
-    this.emit('NewSession'); // Uses the handler in newSessionHandlers
-  },
+  // 'NewSession': function() {
+  //   this.emit('NewSession'); // Uses the handler in newSessionHandlers
+  // },
 
-  'HelloWorldIntent': function() {
+  'DiagramIntent': function() {
 
 
 
@@ -177,49 +231,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
                       var obj = parse(res.data);
 
 
-        var t = function(objroot) {
-           var myobj = {
-             cards: [],
-             accounts: []
 
-           };
-           (function k(obj) {
-
-             if (Array.isArray(obj)) {
-
-               obj.forEach(function(item, i) {
-                 k(item);
-               });
-             } else {
-
-               if (obj.name == 'card') {
-                 var o = {};
-                 obj.children.forEach(function(item, i) {
-                   if (item.name == "id") o.id = item.content;
-                   if (item.name == "balance") o.balance =
-                     item.content;
-                 });
-                 myobj.cards.push(o)
-               } else if (obj.name == 'account') {
-                 var o = {};
-                 obj.children.forEach(function(item, i) {
-                   if (item.name == "id") o.id = item.content;
-                   if (item.name == "balance") o.balance =
-                     item.content;
-                   if (item.name == "maxSumWrite") o.maxSumWrite =
-                     item.content;
-                 });
-                 //console.log(obj.children[1]);
-                 myobj.accounts.push(o)
-               } else {
-                 k(obj.children)
-               }
-
-
-             }
-           })(objroot);
-           return myobj;
-         };
 
          var myobj = t(obj.root);
 
@@ -248,8 +260,9 @@ console.log(arr);
          //pie.addData(123, '123', c());
 
 
-
-        resolve(pie.getUrl(true));
+var Url = pie.getUrl(true);
+pie =  new Quiche('pie');
+        resolve(Url);
       })
       .catch(res => {
         reject(0);
@@ -263,7 +276,7 @@ console.log(arr);
 
 
 
-      if (supportsDisplay.call(this) || isSimulator.call(this)) {
+      // if (supportsDisplay.call(this) || isSimulator.call(this)) {
         var content = {
           "hasDisplaySpeechOutput": "speechOutput",
           "hasDisplayRepromptText": "randomFact1",
@@ -272,15 +285,17 @@ console.log(arr);
           "bodyTemplateTitle": '',
           "bodyTemplateContent": "",
           "templateToken": "factBodyTemplate",
-          "askOrTell": ":tell",
+          "askOrTell": ":ask",
           "imageUrl":res,
-          "sessionAttributes": {}
+          "sessionAttributes": {
+            "STATE": states.STARTMODE
+          }
         };
         renderTemplate.call(this, content);
-      } else {
-        // Just use a card if the device doesn't support a card.
-        this.emit(':tellWithCard', "speechOutput", "777", "randomFact");
-      }
+      // } else {
+      //   // Just use a card if the device doesn't support a card.
+      //   this.emit(':tellWithCard', "speechOutput", "777", "randomFact");
+      // }
 
       // var cardTitle = 'Hello World Card';
       // var cardContent = res;
@@ -323,11 +338,11 @@ console.log(arr);
     this.emit(':ask', 'startGameHandlers', 'Try saying a number.');
   },
 
-  'Unhandled': function() {
-    console.log("UNHANDLED");
-    var message = 'Repeat the name of the recipient.';
-    this.emit(':ask', message, message);
-  }
+  // 'Unhandled': function() {
+  //   console.log("UNHANDLED");
+  //   var message = 'Repeat the name of the recipient.';
+  //   this.emit(':ask', message, message);
+  // }
 });
 
 
@@ -342,10 +357,10 @@ var guessModeHandlers = Alexa.CreateStateHandler(states.GUESSMODE, {
   'HelloWorldIntent': function() {
     this.emit(':ask', 111, 222);
   },
-  'Unhandled': function() {
-    //  this.handler.state = states.GUESSMODE;
-    this.emit(':ask', 'Sorry, I didn\'t get that. Try saying a number.', 'Try saying a number.');
-  },
+  // 'Unhandled': function() {
+  //   //  this.handler.state = states.GUESSMODE;
+  //   this.emit(':ask', 'Sorry, I didn\'t get that. Try saying a number.', 'Try saying a number.');
+  // },
   'NotANum': function() {
     this.emit(':ask', 'Sorry, I didn\'t get that. Try saying a number.', 'Try saying a number.');
   }
