@@ -41,7 +41,7 @@ axiosCookieJarSupport(axios);
 const cookieJar = new tough.CookieJar();
 
 var instance = axios.create({
-  timeout: 30000,
+  timeout: 300000,
   jar: cookieJar, // tough.CookieJar or boolean
   withCredentials: true,
   responseType:'stream',
@@ -62,6 +62,7 @@ var autpip = function(addr) {
         resolve(body);
       });
     }).catch(err => {
+      console.log(err);
       reject(err)
     })
   });
@@ -69,6 +70,7 @@ var autpip = function(addr) {
   return promise.then(res => {
     return res
   }).catch(err => {
+    console.log(err);
     reject(err)
   })
 };
@@ -107,6 +109,7 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
         console.log(token);
         return token;
       }).catch(res => {
+        console.log(res);
       return res;
                     // reject(0);
                     //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
@@ -120,6 +123,7 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
 
   //console.log(token);
 }).catch(res => {
+  console.log(res);
 return res;
 });
 };
@@ -197,7 +201,7 @@ var mydate = function(slotValuefrom,slotValueto){
     data.push(onmonth);
     return data;
 }else{return null}};
-
+var conn = reg();
 
 
 exports.handler = function(event, context, callback) {
@@ -214,7 +218,7 @@ var states = {
   ENDMODE: '_ENDMODE'
 };
 //var conn =  connect();
-var conn = reg();
+
 var newSessionHandlers = {
 
   'NewSession': function() {
@@ -261,7 +265,8 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
                  this.attributes['endstr'] = arr[1];
                 this.attributes['ondate'] = arr[0];
                 this.attributes['onmonth'] = arr[2];
-                this.emit(':askWithCard', this.attributes['ondate'], "haveEventsRepromt", "cardTitle", this.attributes['ondate']);
+                this.attributes['arr']  = arr;
+                this.emit(':askWithCard', "123:"+this.attributes['arr'][0], "haveEventsRepromt", "cardTitle", this.attributes['ondate']);
 
               }
               else {
@@ -294,16 +299,97 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
         this.context.succeed(response);
       },
 
+      'NavigationIntent': function() {
+        console.log(this.attributes['myobj']);
+
+        if (typeof this.attributes['myobj'] == 'undefined') {
+          this.emit(':tell', "sorryan")
+        }
+        if (typeof this.attributes['currentpage'] == 'undefined') {
+          var currentpage = 0;
+        } else {
+          var currentpage = this.attributes['currentpage']
+        };
+        var countpages = Math.ceil(this.attributes['myobj'].length / 50);
+
+
+        var value = this.event.request.intent.slots.index.value;
+        switch (value) {
+          case "next":
+
+            if (currentpage + 1 < countpages)
+            currentpage = currentpage + 1
+console.log(currentpage);
+              break;
+          case "previous":
+
+            if (currentpage - 1 != -1)
+              currentpage = currentpage - 1;
+
+            break;
+          case "last":
+          if (countpages - 1 != -1)
+            currentpage = countpages-1;
+
+            break;
+          case "1st":
+            currentpage = 0;
+
+            break;
+
+          default:
+            this.emit(':ask', "repeat", "repeat");
+            break;
+        }
+        var str = "";
+        for (var i = currentpage*50; i < currentpage*50 + 50; i++) {
+          if (typeof this.attributes['myobj'][i] != 'undefined')
+            str += this.attributes['myobj'][i];
+        }
+
+        //this.attributes['myobj'] = myobj.operations;
+var tc = currentpage*50+50;
+        var content = {
+          "hasDisplaySpeechOutput": "speechOutput",
+          "hasDisplayRepromptText": "randomFact1",
+          "simpleCardTitle": 'SKILL_NAME',
+          "simpleCardContent": "res1",
+          "bodyTemplateTitle": 'Payments: '+currentpage*50+"..."+tc+" of "+this.attributes['myobj'].length,
+          "bodyTemplateContent": str,
+          "templateToken": "factBodyTemplate",
+          "askOrTell": ":ask",
+          "sessionAttributes": {
+            "STATE": states.STARTMODE,
+            "myobj": this.attributes['myobj'],
+            "currentpage": currentpage
+          }
+        };
+
+        renderTemplate.call(this, content);
+
+
+
+      },
+
       'HelloWorldIntent': function() {
+
 
         var value = this.event.request.intent.slots.hi.value;
 
         switch (value) {
           case "calendar on month":
-          return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+          if (typeof this.attributes['onmonth'] == 'undefined') { // Check if it's the first time the skill has been invoked
+            this.attributes['onmonth'] = "03.2017";
+          }
+
+
+          conn.then(() => {
+
+            return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
               "/private/finances/financeCalendar/show.do?operation=filter&onDate="+
-              this.attributes['onmonth']+"&showCash=false&showCashPayments=false"
+              "03.2017&showCash=false&showCashPayments=false"
             ).then((res) => {
+
 
               var obj = parse(res);
 
@@ -314,10 +400,10 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
               var arr = ["date", "outcome", "income"];
               var myobj = t(obj.root, 'calendarDay', arr);
-
+              console.log(myobj.operations.length);
               myobj.operations.forEach(function(item, i) {
-
-                  shuffledMultipleChoiceList.push(item.date+" | "+item.outcome+" ₽| "+item.income+" ₽");
+                if ( parseInt(item.outcome)!=0)
+                  shuffledMultipleChoiceList.push(item.date+" | outcome = "+item.outcome+" ₽, income = "+item.income+" ₽");
 
               });
 
@@ -352,11 +438,13 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
               //resolve(shuffledMultipleChoiceList);
             })
             .catch(res => {
-
+console.log(res);
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
             });
-
+          }).catch(res => {
+console.log(res);
+});
           break;
           case "calendar on date":
           if (typeof this.attributes['ondate'] == 'undefined') { // Check if it's the first time the skill has been invoked
@@ -380,7 +468,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
               myobj.operations.forEach(function(item, i) {
               str=item.description.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"") ;
-                  shuffledMultipleChoiceList.push(item.amount+" ₽| "+item.categoryName+" | "+str);
+                  shuffledMultipleChoiceList.push(item.amount+" ₽!| "+item.categoryName+" | "+str);
 
               });
 
@@ -415,7 +503,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
               //resolve(shuffledMultipleChoiceList);
             })
             .catch(res => {
-
+console.log(res);
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
             });
@@ -493,8 +581,8 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
                 //  resolve(shuffledMultipleChoiceList)
                 //resolve(shuffledMultipleChoiceList);
               })
-              .catch(res => {
-
+              .catch((res) => {
+console.log(res);
                 // reject(0);
                 //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
               });
@@ -502,37 +590,64 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
             break;
             case "history as text":
             if ((typeof this.attributes['startstr'] == 'undefined') || (typeof this.attributes['endstr'] == 'undefined')) { // Check if it's the first time the skill has been invoked
-              this.attributes['startstr'] = "8.11.2015";
+              this.attributes['startstr'] = "8.11.2010";
               this.attributes['endstr'] = "31.3.2018";
             }
+
+
               conn.then(() => {
-                  return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-                    "/private/payments/list.do?from="+this.attributes['startstr']+"&to="+this.attributes['endstr']+"&paginationSize=20&paginationOffset=0"
-                  ).then((res) => {
+              //  {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?from=08.11.2010&to=31.03.2018&paginationSize=200&paginationOffset=0
+                return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+                  "/private/payments/list.do?from=8.11.2010&to="+
+                  "31.3.2018&paginationSize=1000000&paginationOffset=0"
+                ).then((res) => {
+
+//                         var reqcount;
+//                         var countpages ;
+//
+//
+//                     if ((typeof this.attributes['reqcount']=='undefined') || (typeof this.attributes['countpages']=='undefined'))
+//                     { count().then((res)=>{console.log("count = "+res); });
+//                     this.attributes['reqcount'] = reqcount;
+//                     this.attributes['countpages'] =  Math.ceil(reqcount / 100);
+//                   }
+//
+//
+//                     this.attributes['currentpage'] = currentpage;
+//
+// console.log("reqcount"+this.attributes['reqcount']);
+// console.log("countpages"+this.attributes['countpages']);
 
                   var obj = parse(res);
+                  console.log(obj.root);
 
                   var shuffledMultipleChoiceList = [];
                   var arr = ["type", "form", "date", "operationAmount"];
                   var myobj = t(obj.root, 'operation', arr);
                   var str = "";
                   myobj.operations.forEach(function(item, i) {
-                    str +="<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0]+ " | " + item.amount + " | " + item.code +"<br/>" ;
-
-
+                    if(i<50)
+                    str +=i+1+" "+item.type+" "+ item.form + " | " + item.date.split("T")[0]+ " | " + item.amount + " | " + item.code+"<br/>";
+                    //i+1+") <b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0]+ " | " + item.amount + " | " + item.code +"<br/>" ;
+                    var str1 =i+1+") <b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0]+ " | " + item.amount + " | " + item.code +"<br/>" ;
+shuffledMultipleChoiceList.push(str1);
+//console.log(str1);
                   });
 
+                  //this.attributes['myobj'] = myobj.operations;
+console.log(myobj.operations.length);
                   var content = {
                    "hasDisplaySpeechOutput" : "speechOutput",
                    "hasDisplayRepromptText" : "randomFact1",
                    "simpleCardTitle" :'SKILL_NAME',
-                   "simpleCardContent" : "res",
-                   "bodyTemplateTitle" : 'Payments:',
+                   "simpleCardContent" : "res1",
+                   "bodyTemplateTitle" : 'Payments: 0...50 of '+myobj.operations.length,
                    "bodyTemplateContent" : str,
                    "templateToken" : "factBodyTemplate",
-                   "askOrTell" : ":tell",
+                   "askOrTell" : ":ask",
                    "sessionAttributes": {
-                     "STATE": states.STARTMODE
+                     "STATE": states.STARTMODE,
+                     "myobj":shuffledMultipleChoiceList
                    }
                 };
 
@@ -545,12 +660,15 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
                   //  resolve(shuffledMultipleChoiceList)
                   //resolve(shuffledMultipleChoiceList);
                 })
-                .catch(res => {
-
+                .catch((res) => {
+console.log(res);
                   // reject(0);
                   //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
                 });
-              });
+              }).catch((res) => {
+              console.log(res);
+            });
+
               break;
 
           case "calendar for day":

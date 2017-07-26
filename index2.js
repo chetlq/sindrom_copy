@@ -4,8 +4,8 @@ const PSI_ROZA = {
   HOST: "http://194.186.207.23",
   HOST_BLOCK: "http://194.186.207.23",
   SMS_PASS: "55098",
-  mGUID: "2ba47444ac8c7bf8c8aabc967aaa097f",
-  token: "349e2e4c3c15f1dead54e2d68a263099",
+  mGUID: "4856a406c200643f529efd6fe5e90fae",
+  token: "59821587bc4405b466f4fc6e731efa16",
   PASS: "11223",
   PFMtoken: "b02ddd9811f476eebfbce27ca8f404b1"
 };
@@ -21,11 +21,17 @@ const GLOBALS = {
   devID: "08D4B172-B264-419A-BFBE-6EA7E00B6239",
   mGUID: "27e5264de6bd37ba4fe37bea592099d4"
 }
+var USE_IMAGES_FLAG = true;
 
+function getCardTitle() { return "cardtitle";}
+
+var iconv = require('iconv-lite');
 var Alexa = require("alexa-sdk");
 var parse = require('xml-parser');
 const axios = require('axios');
-var inspect = require('util').inspect;
+
+var date = require('./calendar');
+var calendar = new date();
 
 const axiosCookieJarSupport = require('@3846masa/axios-cookiejar-support');
 const tough = require('tough-cookie');
@@ -34,68 +40,93 @@ var Cookie = tough.Cookie;
 axiosCookieJarSupport(axios);
 const cookieJar = new tough.CookieJar();
 
-
 var instance = axios.create({
   timeout: 30000,
   jar: cookieJar, // tough.CookieJar or boolean
   withCredentials: true,
+  responseType:'stream',
   headers: {
+    'Content-Language':'ru',
     'Accept-Language': 'ru;q=1',
-    'Content-Type': 'application/x-www-form-urlencoded',
+    'Content-Type': 'text/xml;charset=windows-1251',
     'User-Agent': 'Mobile Device'
 
   }
 });
 
-var aut = function(addr) {
-  return instance.post(addr)
+
+var autpip = function(addr) {
+  var promise = new Promise(function(resolve, reject) {
+    instance.get(addr).then(res => {
+      res.data.pipe(iconv.decodeStream("win1251")).collect((err, body) => {
+        resolve(body);
+      });
+    }).catch(err => {
+      console.log(err);
+      reject(err)
+    })
+  });
+
+  return promise.then(res => {
+    return res
+  }).catch(err => {
+    console.log(err);
+    reject(err)
+  })
 };
 
 
-
-var connect = function(){
-  return aut(PSI_ROZA.HOST +
-      '/CSAMAPI/registerApp.do?operation=register&login=' + PSI_ROZA.LOGIN +
-      '&version=' + GLOBALS.VERSION +
-      '.10&appType=iPhone&appVersion=5.5.0&deviceName=Simulator&devID=' +
-      GLOBALS.DEVID).then(res => {
-      var obj = parse(res.data);
-      //console.log(obj);
-      //console.log(obj['root']['children'][0]['children'][0]['content']);
-      return obj['root']['children'][2]['children'][0]['content'];
-
-    }).then(mGUID => {
-      return aut(PSI_ROZA.HOST +
+var reg = function(){return autpip(PSI_ROZA.HOST +
+    '/CSAMAPI/registerApp.do?operation=register&login=' + PSI_ROZA.LOGIN +
+    '&version=' + GLOBALS.VERSION +
+    '.10&appType=iPhone&appVersion=5.5.0&deviceName=Simulator&devID=' +
+    GLOBALS.DEVID).then(res=>{
+      var obj = parse(res);
+      var mGUID= obj['root']['children'][2]['children'][0]['content'];
+      console.log(mGUID);
+      return mGUID
+    }).then(mGUID=>{
+      return autpip(PSI_ROZA.HOST +
         "/CSAMAPI/registerApp.do?operation=confirm&mGUID=" +
         mGUID + "&smsPassword=" + PSI_ROZA.SMS_PASS + "&version=" + GLOBALS.VERSION +
-        ".10&appType=iPhone").then(() => {
-        return mGUID;
-      })
+        ".10&appType=iPhone").then(()=>{
+          console.log(mGUID);
+          return mGUID;
+        })
 
-    }).then(mGUID => {
+    //  console.log(res);
 
-      return aut(PSI_ROZA.HOST +
-        "/CSAMAPI/registerApp.do?operation=createPIN&mGUID=" +
-        mGUID + "&password=" + PSI_ROZA.PASS + "&version=" + GLOBALS.VERSION +
-        ".10&appType=iPhone" +
-        "&appVersion=5.5.0&deviceName=Simulator&isLightScheme=false&devID=" +
-        GLOBALS.DEVID + "&mobileSdkData=1").then(res => {
-        var obj = parse(res.data);
-        //console.log(res.data);
-        var v2 = obj['root']['children'][2]['children'][1]['content'];
+  }).then(mGUID=>{
 
-        return v2;
-      })
+     return autpip(PSI_ROZA.HOST +
+      "/CSAMAPI/registerApp.do?operation=createPIN&mGUID=" +
+      mGUID + "&password=" + PSI_ROZA.PASS + "&version=" + GLOBALS.VERSION +
+      ".10&appType=iPhone" +
+      "&appVersion=5.5.0&deviceName=Simulator&isLightScheme=false&devID=" +
+      GLOBALS.DEVID + "&mobileSdkData=1").then(res=>{
+        var obj = parse(res);
+        var token = obj['root']['children'][2]['children'][1]['content'];
+        console.log(token);
+        return token;
+      }).catch(res => {
+        console.log(res);
+      return res;
+                    // reject(0);
+                    //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+                  });
+  //  console.log(res);
+}).then(token=>{
 
-    }).then(token => {
+  return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+    "/postCSALogin.do?token=" + token)
 
-      return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-        "/postCSALogin.do?token=" + token).then(res => {})
 
-    });
+  //console.log(token);
+}).catch(res => {
+  console.log(res);
+return res;
+});
 };
-var conn =  connect();
-
 
 
 var t = function(objroot,val,arr) {
@@ -144,72 +175,35 @@ var t = function(objroot,val,arr) {
          return myobj;
        };
 
-       conn.then(() => {
-         return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-             "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
-
-        //  return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-        //      "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
-         ).then(res => {
-           return res
-         });
 
 
-       }).then((res) => {
 
-         var obj = parse(res.data);
+var count = function(start,stop){
+  console.log(Number.MAX_VALUE);
+   return conn.then(() => {
+    return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+      "/private/payments/list.do?from="+start+"&to="+stop+"&paginationSize=1000000000&paginationOffset=0"
+    ).then((res) => {
 
-              var str = "";
-              var shuffledMultipleChoiceList = [];
+    var obj = parse(res);
 
+    var shuffledMultipleChoiceList = [];
+    var arr = ["type", "form", "date", "operationAmount"];
+    var myobj = t(obj.root, 'operation', arr);
+    myobj.operations.forEach(function(item, i) {
+      var str = i+1+")<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0] +
+        " | " + item.amount + " | " + item.code ;
+      console.log(str);
 
-              var arr = ["id", "description", "categoryName", "amount"];
-              var myobj = t(obj.root, 'operation', arr);
+    });
+    console.log("11111111="+myobj.operations.length);
+    return myobj.length;
+  }).catch((err)=>{console.log(err);return 0})
+}).catch((err)=>{console.log(err);return err})
+};
+function getDecimal(num) {
+  return num > 0 ? num - Math.floor(num) : Math.ceil(num) - num;
+}
 
-              myobj.operations.forEach(function(item, i) {
-              str=item.description ;
-                  shuffledMultipleChoiceList.push(str.replace(/[^\d\sA-Z]/gi,""));
-
-              });
-
-
-              console.log(shuffledMultipleChoiceList);
-            //  resolve(shuffledMultipleChoiceList)
-         //resolve(shuffledMultipleChoiceList);
-       })
-       .catch(res => {
-
-         // reject(0);
-         //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
-       });
-       //var promise = new Promise(function(resolve, reject) {
-/*
-           conn.then(() => {
-             return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-               "/private/payments/list.do?from=8.11.2015&to=31.3.2018&paginationSize=20&paginationOffset=0"
-            //  return aut(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-            //      "/private/finances/financeCalendar/showSelected.do?onDate=03.03.2017&selectedCardIds=552280"
-             ).then(res => {
-               return res
-             });
-           }).then((res) => {
-             var obj = parse(res.data);
-                  var str = "";
-                  var shuffledMultipleChoiceList = [];
-                  var arr = ["type", "form", "date", "operationAmount"];
-                  var myobj = t(obj.root, 'operation', arr);
-                  myobj.operations.forEach(function(item, i) {
-                  str="type = " + item.type + " form = " +
-                      item.form + " date = " + item.date +
-                      " amount = " + item.amount + " code = " + item.code;
-                      shuffledMultipleChoiceList.push(str);
-                  });
-                  console.log(shuffledMultipleChoiceList);
-                //  resolve(shuffledMultipleChoiceList)
-             //resolve(shuffledMultipleChoiceList);
-           })
-           .catch(res => {
-             // reject(0);
-             //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
-           });
-*/
+var conn = reg();
+count("8.11.2010","31.3.2018").then((res)=>{console.log("count = "+res); });
