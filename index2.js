@@ -174,36 +174,66 @@ var t = function(objroot,val,arr) {
          })(objroot);
          return myobj;
        };
+       var mydate = function(slotValuefrom,slotValueto){
+         var data = new Array();
 
+         if ((slotValuefrom != undefined) && (slotValueto != undefined)) {
 
+           var eventDatefrom =  calendar.getDateFromSlot(slotValuefrom);
+           var eventDateto =  calendar.getDateFromSlot(slotValueto);
 
+           var start = {
+             year:new Date(eventDatefrom.startDate).getFullYear(),
+             month : (new Date(eventDatefrom.startDate).getMonth())+1,
+             day :new Date(eventDatefrom.startDate).getDate(),
+           };
+           var end = {
+             year:new Date(eventDateto.endDate).getFullYear(),
+             month : (new Date(eventDateto.endDate).getMonth())+1,
+             day :new Date(eventDateto.endDate).getDate(),
+           };
+           var startstr = start.day+"."+start.month+"."+start.year ;
+           var endstr = end.day+"."+end.month+"."+end.year ;
+           var onmonth = start.month+"."+start.year ;
+           data.push(startstr);
+           data.push(endstr);
+           data.push(onmonth);
+           return data;
+       }else{return null}};
 
-var count = function(start,stop){
-  console.log(Number.MAX_VALUE);
-   return conn.then(() => {
-    return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-      "/private/payments/list.do?from="+start+"&to="+stop+"&paginationSize=1000000000&paginationOffset=0"
-    ).then((res) => {
-
-    var obj = parse(res);
-
-    var shuffledMultipleChoiceList = [];
-    var arr = ["type", "form", "date", "operationAmount"];
-    var myobj = t(obj.root, 'operation', arr);
-    myobj.operations.forEach(function(item, i) {
-      var str = i+1+")<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0] +
-        " | " + item.amount + " | " + item.code ;
-      console.log(str);
-
-    });
-    console.log("11111111="+myobj.operations.length);
-    return myobj.length;
-  }).catch((err)=>{console.log(err);return 0})
-}).catch((err)=>{console.log(err);return err})
-};
-function getDecimal(num) {
-  return num > 0 ? num - Math.floor(num) : Math.ceil(num) - num;
+var slotValue =   "2017-07-27";
+var arr = mydate(slotValue,slotValue);
+var arr = mydate(slotValue,slotValue);
+if ((arr !== null)&&(isNaN(arr[0]))){
+console.log(arr[0]);
 }
-
-var conn = reg();
-count("8.11.2010","31.3.2018").then((res)=>{console.log("count = "+res); });
+//console.log(arr[0]);
+// var count = function(start,stop){
+//   console.log(Number.MAX_VALUE);
+//    return conn.then(() => {
+//     return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+//       "/private/payments/list.do?from="+start+"&to="+stop+"&paginationSize=1000000000&paginationOffset=0"
+//     ).then((res) => {
+//
+//     var obj = parse(res);
+//
+//     var shuffledMultipleChoiceList = [];
+//     var arr = ["type", "form", "date", "operationAmount"];
+//     var myobj = t(obj.root, 'operation', arr);
+//     myobj.operations.forEach(function(item, i) {
+//       var str = i+1+")<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0] +
+//         " | " + item.amount + " | " + item.code ;
+//       console.log(str);
+//
+//     });
+//     console.log("11111111="+myobj.operations.length);
+//     return myobj.length;
+//   }).catch((err)=>{console.log(err);return 0})
+// }).catch((err)=>{console.log(err);return err})
+// };
+// function getDecimal(num) {
+//   return num > 0 ? num - Math.floor(num) : Math.ceil(num) - num;
+// }
+//
+// var conn = reg();
+// count("8.11.2010","31.3.2018").then((res)=>{console.log("count = "+res); });
