@@ -86,14 +86,14 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
     GLOBALS.DEVID).then(res=>{
       var obj = parse(res);
       var mGUID= obj['root']['children'][2]['children'][0]['content'];
-      console.log(mGUID);
+      console.log("mguid = "+mGUID);
       return mGUID
     }).then(mGUID=>{
       return autpip(PSI_ROZA.HOST +
         "/CSAMAPI/registerApp.do?operation=confirm&mGUID=" +
         mGUID + "&smsPassword=" + PSI_ROZA.SMS_PASS + "&version=" + GLOBALS.VERSION +
         ".10&appType=iPhone").then(()=>{
-          console.log(mGUID);
+          console.log("mguid = "+mGUID);
           return mGUID;
         })
 
@@ -109,7 +109,7 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
       GLOBALS.DEVID + "&mobileSdkData=1").then(res=>{
         var obj = parse(res);
         var token = obj['root']['children'][2]['children'][1]['content'];
-        console.log(token);
+        console.log("token = "+token);
         return token;
       }).catch(res => {
         console.log(res);
@@ -206,7 +206,7 @@ var mydate = function(slotValuefrom,slotValueto){
     else  {return data;}
 }else{return null}};
 
-var conn = reg();
+
 
 
 var c = function(){
@@ -237,13 +237,16 @@ var states = {
   ENDMODE: '_ENDMODE'
 };
 //var conn =  connect();
-
+var conn;
 var newSessionHandlers = {
   'NewSession': function() {
+    conn=null;
+     conn = reg();
     this.handler.state = states.STARTMODE;
     this.emit(':ask', 'Welcome1 ');
     //'Say yes to start the game or no to quit.
   },
+
   'Unhandled': function () {
     //this.emitWithState('')
     this.emit(':ask', 'HelpMessage', 'HelpMessage');
@@ -254,9 +257,9 @@ var newSessionHandlers = {
 
 
 var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
-      'NewSession': function() {
-        this.emit('NewSession'); // Uses the handler in newSessionHandlers
-      },
+      // 'NewSession': function() {
+      //   this.emit('NewSession'); // Uses the handler in newSessionHandlers
+      // },
       'eventIntent': function() {
         this.handler.state = states.STARTMODE;
 
@@ -544,6 +547,80 @@ var tc = currentpage*50+50;
         renderTemplate.call(this, content);
 
 
+
+      },
+      'TwoHello': function() {
+        if (typeof this.attributes['onmonth'] == 'undefined') { // Check if it's the first time the skill has been invoked
+          this.attributes['onmonth'] = "03.2017";
+        }
+
+
+        conn.then(() => {
+
+          return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+            "/private/finances/financeCalendar/show.do?operation=filter&onDate="+this.attributes['onmonth']+
+            "&showCash=false&showCashPayments=false"
+          ).then((res) => {
+
+
+            var obj = parse(res);
+
+            var str = "";
+            var s = "";
+            var shuffledMultipleChoiceList = [];
+
+
+            var arr = ["date", "outcome", "income"];
+            var myobj = t(obj.root, 'calendarDay', arr);
+            console.log(myobj.operations.length);
+            myobj.operations.forEach(function(item, i) {
+              if (( parseInt(item.outcome)!=0) || ( parseInt(item.income)!=0))
+                shuffledMultipleChoiceList.push(item.date+" | outcome = "+item.outcome+" ₽, income = "+item.income+" ₽");
+
+            });
+
+
+            //.console.log(shuffledMultipleChoiceList);
+            var str = "";
+            shuffledMultipleChoiceList.forEach(function(item, i) {
+            str+=item+"<br/>";
+            });
+            console.log(str);
+            var content = {
+             "hasDisplaySpeechOutput" : "speechOutput",
+             "hasDisplayRepromptText" : "randomFact1",
+             "simpleCardTitle" :'SKILL_NAME',
+             "simpleCardContent" : "res",
+             "bodyTemplateTitle" : 'Payments'+this.attributes['onmonth'],
+             "bodyTemplateContent" : str,
+             "templateToken" : "factBodyTemplate",
+             "askOrTell" : ":tell",
+             "sessionAttributes": {
+               "STATE": states.STARTMODE,
+               "startstr":this.attributes['startstr'],
+"endstr":this.attributes['endstr'],
+'ondate':this.attributes['ondate'],
+'onmonth':this.attributes['onmonth']
+             }
+          };
+
+            renderTemplate.call(this, content);
+
+
+
+            // console.log(shuffledMultipleChoiceList);
+            // this.emit(':ask', value + "1", value);
+            //  resolve(shuffledMultipleChoiceList)
+            //resolve(shuffledMultipleChoiceList);
+          })
+          .catch(res => {
+console.log(res);
+            // reject(0);
+            //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+          });
+        }).catch(res => {
+console.log(res);
+});
 
       },
 

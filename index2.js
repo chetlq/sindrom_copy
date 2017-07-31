@@ -24,9 +24,12 @@ const GLOBALS = {
 var USE_IMAGES_FLAG = true;
 
 function getCardTitle() { return "cardtitle";}
+function cardTitle() { return "cardtitle";}
+
+
 
 var iconv = require('iconv-lite');
-var Alexa = require("alexa-sdk");
+
 var parse = require('xml-parser');
 const axios = require('axios');
 
@@ -41,7 +44,7 @@ axiosCookieJarSupport(axios);
 const cookieJar = new tough.CookieJar();
 
 var instance = axios.create({
-  timeout: 30000,
+  timeout: 300000,
   jar: cookieJar, // tough.CookieJar or boolean
   withCredentials: true,
   responseType:'stream',
@@ -71,7 +74,6 @@ var autpip = function(addr) {
     return res
   }).catch(err => {
     console.log(err);
-    reject(err)
   })
 };
 
@@ -83,14 +85,14 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
     GLOBALS.DEVID).then(res=>{
       var obj = parse(res);
       var mGUID= obj['root']['children'][2]['children'][0]['content'];
-      console.log(mGUID);
+      console.log("mguid = "+mGUID);
       return mGUID
     }).then(mGUID=>{
       return autpip(PSI_ROZA.HOST +
         "/CSAMAPI/registerApp.do?operation=confirm&mGUID=" +
         mGUID + "&smsPassword=" + PSI_ROZA.SMS_PASS + "&version=" + GLOBALS.VERSION +
         ".10&appType=iPhone").then(()=>{
-          console.log(mGUID);
+          console.log("mguid = "+mGUID);
           return mGUID;
         })
 
@@ -106,7 +108,7 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
       GLOBALS.DEVID + "&mobileSdkData=1").then(res=>{
         var obj = parse(res);
         var token = obj['root']['children'][2]['children'][1]['content'];
-        console.log(token);
+        console.log("token = "+token);
         return token;
       }).catch(res => {
         console.log(res);
@@ -174,66 +176,94 @@ var t = function(objroot,val,arr) {
          })(objroot);
          return myobj;
        };
-       var mydate = function(slotValuefrom,slotValueto){
-         var data = new Array();
 
-         if ((slotValuefrom != undefined) && (slotValueto != undefined)) {
+var mydate = function(slotValuefrom,slotValueto){
+  var data = new Array();
 
-           var eventDatefrom =  calendar.getDateFromSlot(slotValuefrom);
-           var eventDateto =  calendar.getDateFromSlot(slotValueto);
+  if ((slotValuefrom != undefined) && (slotValueto != undefined)) {
 
-           var start = {
-             year:new Date(eventDatefrom.startDate).getFullYear(),
-             month : (new Date(eventDatefrom.startDate).getMonth())+1,
-             day :new Date(eventDatefrom.startDate).getDate(),
-           };
-           var end = {
-             year:new Date(eventDateto.endDate).getFullYear(),
-             month : (new Date(eventDateto.endDate).getMonth())+1,
-             day :new Date(eventDateto.endDate).getDate(),
-           };
-           var startstr = start.day+"."+start.month+"."+start.year ;
-           var endstr = end.day+"."+end.month+"."+end.year ;
-           var onmonth = start.month+"."+start.year ;
-           data.push(startstr);
-           data.push(endstr);
-           data.push(onmonth);
-           return data;
-       }else{return null}};
+    var eventDatefrom =  calendar.getDateFromSlot(slotValuefrom);
+    var eventDateto =  calendar.getDateFromSlot(slotValueto);
 
-var slotValue =   "2017-07-27";
-var arr = mydate(slotValue,slotValue);
-var arr = mydate(slotValue,slotValue);
-if ((arr !== null)&&(isNaN(arr[0]))){
-console.log(arr[0]);
+    var start = {
+      year:new Date(eventDatefrom.startDate).getFullYear(),
+      month : (new Date(eventDatefrom.startDate).getMonth())+1,
+      day :new Date(eventDatefrom.startDate).getDate(),
+    };
+    var end = {
+      year:new Date(eventDateto.endDate).getFullYear(),
+      month : (new Date(eventDateto.endDate).getMonth())+1,
+      day :new Date(eventDateto.endDate).getDate(),
+    };
+    var startstr = start.day+"."+start.month+"."+start.year ;
+    var endstr = end.day+"."+end.month+"."+end.year ;
+    var onmonth = start.month+"."+start.year ;
+    data.push(startstr);
+    data.push(endstr);
+    data.push(onmonth);
+    if((startstr == "NaN.NaN.NaN") || (endstr == "NaN.NaN.NaN")) {return null;}
+    else  {return data;}
+}else{return null}};
+
+var conn = reg();
+
+
+var c = function(){
+  function rgb2hex(rgb){
+   rgb = rgb.match(/^[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i);
+   var c = (rgb && rgb.length === 4) ?
+    ("0" + parseInt(rgb[1],10).toString(16)).slice(-2) +
+    ("0" + parseInt(rgb[2],10).toString(16)).slice(-2) +
+    ("0" + parseInt(rgb[3],10).toString(16)).slice(-2) : '';
+   return c.toUpperCase();
+  }
+  var v = function(){ return Math.round(Math.random()*255)};
+  return rgb2hex('('+v()+', '+v()+', '+v()+')');
 }
-//console.log(arr[0]);
-// var count = function(start,stop){
-//   console.log(Number.MAX_VALUE);
-//    return conn.then(() => {
-//     return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-//       "/private/payments/list.do?from="+start+"&to="+stop+"&paginationSize=1000000000&paginationOffset=0"
-//     ).then((res) => {
-//
-//     var obj = parse(res);
-//
-//     var shuffledMultipleChoiceList = [];
-//     var arr = ["type", "form", "date", "operationAmount"];
-//     var myobj = t(obj.root, 'operation', arr);
-//     myobj.operations.forEach(function(item, i) {
-//       var str = i+1+")<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0] +
-//         " | " + item.amount + " | " + item.code ;
-//       console.log(str);
-//
-//     });
-//     console.log("11111111="+myobj.operations.length);
-//     return myobj.length;
-//   }).catch((err)=>{console.log(err);return 0})
-// }).catch((err)=>{console.log(err);return err})
-// };
-// function getDecimal(num) {
-//   return num > 0 ? num - Math.floor(num) : Math.ceil(num) - num;
-// }
-//
-// var conn = reg();
-// count("8.11.2010","31.3.2018").then((res)=>{console.log("count = "+res); });
+
+
+
+conn.then(() => {
+
+  return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+              "/private/graphics/finance.do"
+    ).then((res) => {
+
+
+      var obj = parse(res);
+
+      var str = "";
+      var s = "";
+      var shuffledMultipleChoiceList = [];
+
+        var arr = ["id", "balance"];
+      var myobj = t(obj.root,"card", arr);
+      //console.log(myobj.operations.length);
+      var arr = [];
+
+      var arr2 = [];
+
+      myobj.operations.forEach(function(item, i) {
+        var ttt = item.balance.replace(/\s/g, "");
+        if (parseInt(ttt) > 0) {
+          console.log(item.id + " | balance = " + item.balance + " ₽");
+          // pie.addData(parseInt(ttt), "id = " + item.id + " ", c());
+          // arr.push(parseInt(ttt));
+          //
+          // shuffledMultipleChoiceList.push(item.id + " | balance = " + item.balance + " ₽");
+          // console.log(item.id + " | balance = " + item.balance + " ₽");
+        }
+      });
+
+    })
+    .catch(res => {
+    console.log(res);
+    // reject(0);
+    //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+    });
+
+  }).catch(res => {
+  console.log(res);
+  // reject(0);
+  //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+  });
