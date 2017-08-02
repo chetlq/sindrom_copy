@@ -221,49 +221,104 @@ var c = function(){
   return rgb2hex('('+v()+', '+v()+', '+v()+')');
 }
 
+console.log("<break time='1s'/> ");
 
-
+// conn.then(() => {
+//
+//   return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+//               "/private/graphics/finance.do"
+//     ).then((res) => {
+//
+//
+//       var obj = parse(res);
+//
+//       var str = "";
+//       var s = "";
+//       var shuffledMultipleChoiceList = [];
+//
+//         var arr = ["id", "balance"];
+//       var myobj = t(obj.root,"card", arr);
+//       //console.log(myobj.operations.length);
+//       var arr = [];
+//
+//       var arr2 = [];
+//
+//       myobj.operations.forEach(function(item, i) {
+//         var ttt = item.balance.replace(/\s/g, "");
+//         if (parseInt(ttt) > 0) {
+//           console.log(item.id + " | balance = " + item.balance + " ₽");
+//           // pie.addData(parseInt(ttt), "id = " + item.id + " ", c());
+//           // arr.push(parseInt(ttt));
+//           //
+//           // shuffledMultipleChoiceList.push(item.id + " | balance = " + item.balance + " ₽");
+//           // console.log(item.id + " | balance = " + item.balance + " ₽");
+//         }
+//       });
+//
+//     })
+//     .catch(res => {
+//     console.log(res);
+//     // reject(0);
+//     //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+//     });
+//
+//   }).catch(res => {
+//   console.log(res);
+//   // reject(0);
+//   //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+// });
 conn.then(() => {
-
+//  {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?from=08.11.2010&to=31.03.2018&paginationSize=200&paginationOffset=0
   return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-              "/private/graphics/finance.do"
-    ).then((res) => {
+    "/private/payments/list.do?from="+
+    '8.11.2010'+"&to="+'31.3.2018'+
+    "&paginationSize=100&paginationOffset=1"
+  ).then((res) => {
+
+    var obj = parse(res);
+    //console.log(obj.root);
+
+    var shuffledMultipleChoiceList = [];
+    var arr = ["type", "form", "date", "operationAmount"];
+    var myobj = t(obj.root, 'operation', arr);
+    var str = "";
+    //var readstr = [];
+    myobj.operations.forEach(function(item, i) {
+      //if((parseInt(item.amount)!=0)&&(!isNaN(parseInt(item.amount)))){
+        var type = item.type || "not type";
+        type =type.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
+        var form = item.form || "not type";
+        form = form.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
+        var date =item.date || "npt date T ";
+        date =date.split("T")[0]+"";
+        date = date.replace(/[^\d\sA-Za-zА-Яа-я/.]/gi,"");
+        var amount = item.amount || 0;
+        amount = Math.round(parseInt(amount))+"";
+        var code = item.code || "not code";
+        code =code.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
+
+      //str +=i+1+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>";
 
 
-      var obj = parse(res);
 
-      var str = "";
-      var s = "";
-      var shuffledMultipleChoiceList = [];
+console.log(i+1+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>");
 
-        var arr = ["id", "balance"];
-      var myobj = t(obj.root,"card", arr);
-      //console.log(myobj.operations.length);
-      var arr = [];
 
-      var arr2 = [];
 
-      myobj.operations.forEach(function(item, i) {
-        var ttt = item.balance.replace(/\s/g, "");
-        if (parseInt(ttt) > 0) {
-          console.log(item.id + " | balance = " + item.balance + " ₽");
-          // pie.addData(parseInt(ttt), "id = " + item.id + " ", c());
-          // arr.push(parseInt(ttt));
-          //
-          // shuffledMultipleChoiceList.push(item.id + " | balance = " + item.balance + " ₽");
-          // console.log(item.id + " | balance = " + item.balance + " ₽");
-        }
-      });
 
-    })
-    .catch(res => {
-    console.log(res);
+    // console.log(shuffledMultipleChoiceList);
+    // this.emit(':ask', value + "1", value);
+    //  resolve(shuffledMultipleChoiceList)
+    //resolve(shuffledMultipleChoiceList);
+  })
+  .catch((res) => {
+console.log('catch13-2'+res);
     // reject(0);
     //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
-    });
-
-  }).catch(res => {
-  console.log(res);
-  // reject(0);
-  //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
   });
+}).catch((res) => {
+console.log('catch1'+res);
+});
+}).catch((res) => {
+console.log('catch1'+res);
+});
