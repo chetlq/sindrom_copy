@@ -383,11 +383,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
                    "askOrTell": ":ask",
                    "imageUrl":res,
                    "sessionAttributes": {
-                     "STATE": states.STARTMODE,
-                     "startstr":this.attributes['startstr'],
-"endstr":this.attributes['endstr'],
-'ondate':this.attributes['ondate'],
-'onmonth':this.attributes['onmonth']
+                     "STATE": states.STARTMODE
                    }
                  };
                  renderTemplate2.call(this, content);
@@ -471,7 +467,7 @@ console.log("currentpage = "+currentpage);
                 var tvalue = 'operation';
               break;
           default:
-          this.emit(':ask', "repeat", "repeat");
+          this.emit(':ask', "dont work for this repeat", "dont work for this repeat");
 
         }
 
@@ -786,20 +782,21 @@ console.log('catch1'+res);
         var slotValuefrom = this.event.request.intent.slots.datefrom.value||this.attributes['slotValuefrom']||this.attributes['startstr']||null;
         var slotValueto = this.event.request.intent.slots.dateto.value||this.attributes['slotValueto']||this.attributes['endstr']||null;
         var slotDate = this.event.request.intent.slots.date.value || null;
-        console.log(slotValuefrom+" to "+slotValueto);
-            var arr = getDate.call(this,this.attributes['startstr'],this.attributes['endstr'],slotValuefrom,slotValueto,slotDate);
+        // console.log(slotValuefrom+" to "+slotValueto);
+        var arr = getDate.call(this,this.attributes['startstr'],this.attributes['endstr'],slotValuefrom,slotValueto,slotDate);
 
-          this.attributes['startstr'] = arr[0];
-          this.attributes['endstr'] = arr[1];
-          if(arr[2]) {
-            this.attributes['onmonth'] = arr[2];
+
             this.attributes['startstr'] = arr[0];
             this.attributes['endstr'] = arr[1];
-          } else {
-            this.attributes['onmonth'] = undefined;
-            this.attributes['startstr'] = arr[0];
-            this.attributes['endstr'] = arr[1];
-          }
+            if (slotDate){
+              this.attributes['onmonth'] = arr[2];
+              this.attributes['ondate'] = arr[1];
+            } else {
+              this.attributes['onmonth'] = undefined;
+              this.attributes['ondate'] = undefined;
+            }
+
+
           this.attributes['slotValuefrom'] = undefined;
           this.attributes['slotValueto'] = undefined;
 
@@ -855,10 +852,10 @@ console.log('catch1'+res);
                "askOrTell" : ":tell",
                "sessionAttributes": {
                  "STATE": states.STARTMODE,
-                 "startstr":this.attributes['startstr'],
-"endstr":this.attributes['endstr'],
-'ondate':this.attributes['ondate'],
-'onmonth':this.attributes['onmonth']
+                 'onmonth':this.attributes['onmonth']
+                 "countitems":shuffledMultipleChoiceList.length,
+                 'currentpage':0,
+                 'request':'4117'
                }
             };
 
@@ -925,11 +922,7 @@ console.log('catch10'+res);
                "sessionAttributes": {
                  "STATE": states.STARTMODE,
                  "countitems":myobj.operations.length,
-                 //"myobj":shuffledMultipleChoiceList,
-                 "startstr":this.attributes['startstr'],
-                 "endstr":this.attributes['endstr'],
                  'ondate':this.attributes['ondate'],
-                 'onmonth':this.attributes['onmonth'],
                  'currentpage':0,
                  'request':'4118'//,
                  //'readstr':readstr                     //'bodyTemplateContent':str
@@ -972,10 +965,11 @@ console.log('catch11'+res);
                 var myobj = t(obj.root, 'operation', arr);
 
                 myobj.operations.forEach(function(item, i) {
-                  var str = "<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0] +
-                    " | " + item.amount + " | " + item.code ;
-                  shuffledMultipleChoiceList.push(str);
-
+                  if (i<50){
+                    var str = "<b>"+item.type+"</b>" + " | " + item.form + " | " + item.date.split("T")[0] +
+                      " | " + item.amount + " | " + item.code ;
+                    shuffledMultipleChoiceList.push(str);
+                  }
                 });
 
                 let listItems = shuffledMultipleChoiceList.map((name,i) => {
@@ -1009,21 +1003,16 @@ console.log('catch11'+res);
                       "hint" : "Add a hint here",
                       "sessionAttributes": {
                         "STATE": states.STARTMODE,
+                        "countitems":myobj.operations.length,
                         "startstr":this.attributes['startstr'],
-"endstr":this.attributes['endstr'],
-'ondate':this.attributes['ondate'],
-'onmonth':this.attributes['onmonth']
+                        "endstr":this.attributes['endstr'],
+                        'currentpage':0,
+                        'request':'412astext'
                       }
                   };
 
                 renderTemplate.call(this, content);
 
-
-
-                // console.log(shuffledMultipleChoiceList);
-                // this.emit(':ask', value + "1", value);
-                //  resolve(shuffledMultipleChoiceList)
-                //resolve(shuffledMultipleChoiceList);
               })
               .catch((res) => {
 console.log('catch12'+res);
@@ -1033,11 +1022,6 @@ console.log('catch12'+res);
             });
             break;
             case "request 4.12 as text":
-            // if ((typeof this.attributes['startstr'] == 'undefined') || (typeof this.attributes['endstr'] == 'undefined')) { // Check if it's the first time the skill has been invoked
-            //   this.attributes['startstr'] = "8.11.2010";
-            //   this.attributes['endstr'] = "31.3.2018";
-            // }
-
 
               conn.then(() => {
               //  {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?from=08.11.2010&to=31.03.2018&paginationSize=200&paginationOffset=0
@@ -1091,11 +1075,8 @@ console.log('catch12'+res);
                    "sessionAttributes": {
                      "STATE": states.STARTMODE,
                      "countitems":myobj.operations.length,
-                     //"myobj":shuffledMultipleChoiceList,
                      "startstr":this.attributes['startstr'],
                      "endstr":this.attributes['endstr'],
-                     'ondate':this.attributes['ondate'],
-                     'onmonth':this.attributes['onmonth'],
                      'currentpage':0,
                      'request':'412astext'//,
                      //'readstr':readstr                     //'bodyTemplateContent':str
