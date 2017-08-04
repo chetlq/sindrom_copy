@@ -792,8 +792,8 @@ console.log('catch1'+res);
 
 
         var value = this.event.request.intent.slots.hi.value;
-        var slotValuefrom = this.event.request.intent.slots.datefrom.value||this.attributes['slotValuefrom']||this.attributes['startstr']||null;
-        var slotValueto = this.event.request.intent.slots.dateto.value||this.attributes['slotValueto']||this.attributes['endstr']||null;
+        var slotValuefrom = this.event.request.intent.slots.datefrom.value||this.attributes['slotValuefrom']||null;
+        var slotValueto = this.event.request.intent.slots.dateto.value||this.attributes['slotValueto']||null;
         var slotDate = this.event.request.intent.slots.date.value || null;
         // console.log(slotValuefrom+" to "+slotValueto);
         var arr = getDate.call(this,this.attributes['startstr'],this.attributes['endstr'],slotValuefrom,slotValueto,slotDate);
@@ -865,7 +865,7 @@ console.log('catch1'+res);
                "askOrTell" : ":tell",
                "sessionAttributes": {
                  "STATE": states.STARTMODE,
-                 'onmonth':this.attributes['onmonth']
+                 'onmonth':this.attributes['onmonth'],
                  "countitems":shuffledMultipleChoiceList.length,
                  'currentpage':0,
                  'request':'4117'
