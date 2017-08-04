@@ -1,4 +1,4 @@
-// for usevar
+'use strict';
 // calendar = require('./calendar');
 // var date = new calendar();
 // console.log(date.removeTags("d?"));

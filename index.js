@@ -40,6 +40,8 @@ const axios = require('axios');
 var date = require('./calendar');
 var calendar = new date();
 
+var getDate = require('./getDate');
+
 const axiosCookieJarSupport = require('@3846masa/axios-cookiejar-support');
 const tough = require('tough-cookie');
 var Cookie = tough.Cookie;
@@ -183,37 +185,6 @@ var t = function(objroot,val,arr) {
          return myobj;
        };
 
-var mydate = function(slotValuefrom,slotValueto){
-  var data = new Array();
-
-  if ((slotValuefrom != undefined) && (slotValueto != undefined)) {
-
-    var eventDatefrom =  calendar.getDateFromSlot(slotValuefrom);
-    var eventDateto =  calendar.getDateFromSlot(slotValueto);
-
-    var start = {
-      year:new Date(eventDatefrom.startDate).getFullYear(),
-      month : (new Date(eventDatefrom.startDate).getMonth())+1,
-      day :new Date(eventDatefrom.startDate).getDate(),
-    };
-    var end = {
-      year:new Date(eventDateto.endDate).getFullYear(),
-      month : (new Date(eventDateto.endDate).getMonth())+1,
-      day :new Date(eventDateto.endDate).getDate(),
-    };
-    var startstr = start.day+"."+start.month+"."+start.year ;
-    var endstr = end.day+"."+end.month+"."+end.year ;
-    var onmonth = start.month+"."+start.year ;
-    data.push(startstr);
-    data.push(endstr);
-    data.push(onmonth);
-    if((startstr == "NaN.NaN.NaN") || (endstr == "NaN.NaN.NaN")) {return null;}
-    else  {return data;}
-}else{return null}};
-
-
-
-
 var c = function(){
   function rgb2hex(rgb){
    rgb = rgb.match(/^[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i);
@@ -268,67 +239,22 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
       'eventIntent': function() {
         this.handler.state = states.STARTMODE;
 
-        var slotValuefrom = this.event.request.intent.slots.datefrom.value;
-        var slotValueto = this.event.request.intent.slots.dateto.value;
+        var slotValuefrom = this.event.request.intent.slots.datefrom.value||this.attributes['slotValuefrom']||this.attributes['startstr']||null;
+        var slotValueto = this.event.request.intent.slots.dateto.value||this.attributes['slotValueto']||this.attributes['endstr']||null;
+        var slotDate = this.event.request.intent.slots.date.value || null;
+        console.log(slotValuefrom+" to "+slotValueto);
+            var arr = getDate.call(this,this.attributes['startstr'],this.attributes['endstr'],slotValuefrom,slotValueto,slotDate);
 
-         var arr = mydate(slotValuefrom,slotValueto);
-         if (arr !== null){
           this.attributes['startstr'] = arr[0];
           this.attributes['endstr'] = arr[1];
-          this.attributes['myobj'] = undefined;
+          this.attributes['slotValuefrom'] = undefined;
+          this.attributes['slotValueto'] = undefined;
           var str = "start: "+arr[0]+" - end: " + arr[1];
-          this.emit(':askWithCard', 123, "haveEventsRepromt", "cardTitle", str);
+          this.emit(':askWithCard', str, "haveEventsRepromt", "cardTitle", str);
           //  this.emit(':ask', "start: "+new Date(eventDate.startDate)+" - end: " + new Date(eventDate.endDate), HelpMessage);
-        } else {
-          this.emit(":ask", "I'm sorry.  What day did you want me to look for events?", "I'm sorry.  What day did you want me to look for events?");
-        }
+
 
       },
-
-      'searchIntent': function () {
-              this.handler.state = states.STARTMODE;
-
-              var slotValue = this.event.request.intent.slots.date.value;
-
-              var arr = mydate(slotValue,slotValue);
-              if ((arr !== null)&&(arr[0] != "NaN.NaN.NaN")){
-                 this.attributes['startstr'] = arr[0];
-                 this.attributes['endstr'] = arr[1];
-                this.attributes['ondate'] = arr[0];
-                this.attributes['onmonth'] = arr[2];
-                this.attributes['myobj'] = undefined;
-                this.emit(':askWithCard', "123:", "haveEventsRepromt", "cardTitle", "from "+this.attributes['ondate']+" to "+this.attributes['endstr']);
-
-              }
-              else {
-                this.emit(':askWithCard', "123:", "haveEventsRepromt", "cardTitle", "error");
-              }
-          },
-
-      // 'SayHello': function(){
-      //   //this.handler.state = states.STARTMODE;
-      //
-      //   var response = {
-      //     "version": "1.0",
-      //     "response": {
-      //       "outputSpeech": {
-      //         "type": "SSML",
-      //         "ssml": "<speak>"+this.attributes['startstr'] +" : "+this.attributes['endstr']+"  </speak>"
-      //       },
-      //       "speechletResponse": {
-      //         "outputSpeech": {
-      //           "ssml": "<speak> 123321  </speak>"
-      //         },
-      //         "shouldEndSession": false
-      //       }
-      //     },
-      //     "sessionAttributes": {
-      //       "STATE": "_STARTMODE"
-      //     }
-      //   };
-      //
-      //   this.context.succeed(response);
-      // },
 
       'DiagramIntent': function() {
         function compareNumeric(a, b) {
@@ -857,11 +783,33 @@ console.log('catch1'+res);
 
 
         var value = this.event.request.intent.slots.hi.value;
+        var slotValuefrom = this.event.request.intent.slots.datefrom.value||this.attributes['slotValuefrom']||this.attributes['startstr']||null;
+        var slotValueto = this.event.request.intent.slots.dateto.value||this.attributes['slotValueto']||this.attributes['endstr']||null;
+        var slotDate = this.event.request.intent.slots.date.value || null;
+        console.log(slotValuefrom+" to "+slotValueto);
+            var arr = getDate.call(this,this.attributes['startstr'],this.attributes['endstr'],slotValuefrom,slotValueto,slotDate);
+
+          this.attributes['startstr'] = arr[0];
+          this.attributes['endstr'] = arr[1];
+          if(arr[2]) {
+            this.attributes['onmonth'] = arr[2];
+            this.attributes['startstr'] = arr[0];
+            this.attributes['endstr'] = arr[1];
+          } else {
+            this.attributes['onmonth'] = undefined;
+            this.attributes['startstr'] = arr[0];
+            this.attributes['endstr'] = arr[1];
+          }
+          this.attributes['slotValuefrom'] = undefined;
+          this.attributes['slotValueto'] = undefined;
+
+
 
         switch (value) {
           case "request 4.11.7":
           if (typeof this.attributes['onmonth'] == 'undefined') { // Check if it's the first time the skill has been invoked
-            this.attributes['onmonth'] = "03.2017";
+          this.emit(":ask", "repeat the single date", "repeat the single date");
+            //this.attributes['onmonth'] = "03.2017";
           }
 
 
@@ -937,7 +885,8 @@ console.log('catch10'+res);
 
           case "request 4.11.8":
           if (typeof this.attributes['ondate'] == 'undefined') { // Check if it's the first time the skill has been invoked
-            this.attributes['ondate'] = "03.03.2017";
+          this.emit(":ask", "repeat the single date", "repeat the single date");
+            //this.attributes['ondate'] = "03.03.2017";
           }
           conn.then(() => {
 
@@ -1004,10 +953,10 @@ console.log('catch11'+res);
           });
             break;
           case "request 4.12 as list":
-          if ((typeof this.attributes['startstr'] == 'undefined') || (typeof this.attributes['endstr'] == 'undefined')) { // Check if it's the first time the skill has been invoked
-            this.attributes['startstr'] = "8.11.2015";
-            this.attributes['endstr'] = "31.3.2018";
-          }
+          // if ((typeof this.attributes['startstr'] == 'undefined') || (typeof this.attributes['endstr'] == 'undefined')) { // Check if it's the first time the skill has been invoked
+          //   this.attributes['startstr'] = "8.11.2015";
+          //   this.attributes['endstr'] = "31.3.2018";
+          // }
 
             conn.then(() => {
 
@@ -1084,10 +1033,10 @@ console.log('catch12'+res);
             });
             break;
             case "request 4.12 as text":
-            if ((typeof this.attributes['startstr'] == 'undefined') || (typeof this.attributes['endstr'] == 'undefined')) { // Check if it's the first time the skill has been invoked
-              this.attributes['startstr'] = "8.11.2010";
-              this.attributes['endstr'] = "31.3.2018";
-            }
+            // if ((typeof this.attributes['startstr'] == 'undefined') || (typeof this.attributes['endstr'] == 'undefined')) { // Check if it's the first time the skill has been invoked
+            //   this.attributes['startstr'] = "8.11.2010";
+            //   this.attributes['endstr'] = "31.3.2018";
+            // }
 
 
               conn.then(() => {
