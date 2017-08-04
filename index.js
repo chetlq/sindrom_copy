@@ -398,7 +398,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
 
                }).catch(res => {
-                 this.emit(':tell', 'Connection error, restart the skill ');
+                 this.emit(':tell', 'Something is wrong, Sorry');
                  console.log('catch8'+res);
                  this.emit(':tellWithCard',res, cardTitle,res, "imageObj");
                });
