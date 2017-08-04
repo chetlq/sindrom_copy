@@ -71,6 +71,8 @@ var autpip = function(addr) {
         resolve(body);
       });
     }).catch(err => {
+
+      this.emit(':tell', 'Connection error, restart the skill ');
       console.log('catch1'+err);
       reject(err)
     })
@@ -79,6 +81,7 @@ var autpip = function(addr) {
   return promise.then(res => {
     return res
   }).catch(err => {
+    this.emit(':tell', 'Connection error, restart the skill ');
     console.log('catch2'+err);
   })
 };
@@ -101,6 +104,7 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
           console.log("mguid = "+mGUID);
           return mGUID;
         }).catch(res => {
+          this.emit(':tell', 'Connection error, restart the skill ');
           console.log('catch3'+res);
           });
 
@@ -119,6 +123,7 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
         console.log("token = "+token);
         return token;
       }).catch(res => {
+        this.emit(':tell', 'Connection error, restart the skill ');
         console.log('catch4'+res);
       return res;
                     // reject(0);
@@ -133,6 +138,7 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
 
   //console.log(token);
 }).catch(res => {
+  this.emit(':tell', 'Connection error, restart the skill ');
   console.log('catch5'+res);
 return res;
 });
@@ -356,12 +362,14 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
               })
               .catch(res => {
+                this.emit(':tell', 'Connection error, restart the skill ');
               console.log('catch6'+res);
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
               });
 
               }).catch(res => {
+                this.emit(':tell', 'Connection error, restart the skill ');
               console.log('catch7'+res);
               reject(res)
               // reject(0);
@@ -390,6 +398,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
 
                }).catch(res => {
+                 this.emit(':tell', 'Connection error, restart the skill ');
                  console.log('catch8'+res);
                  this.emit(':tellWithCard',res, cardTitle,res, "imageObj");
                });
@@ -587,11 +596,13 @@ console.log("currentpage = "+currentpage);
                           //resolve(shuffledMultipleChoiceList);
                         })
                         .catch((res) => {
+                          this.emit(':tell', 'Connection error, restart the skill ');
         console.log('catch13'+res);
                           // reject(0);
                           //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
                         });
                       }).catch((res) => {
+                        this.emit(':tell', 'Connection error, restart the skill ');
                       console.log('catch1'+res);
                     });
 
@@ -762,11 +773,13 @@ console.log(countitems);
     //resolve(shuffledMultipleChoiceList);
   })
   .catch((res) => {
+    this.emit(':tell', 'Connection error, restart the skill ');
 console.log('catch13'+res);
     // reject(0);
     //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
   });
 }).catch((res) => {
+  this.emit(':tell', 'Connection error, restart the skill ');
 console.log('catch1'+res);
 });
 
@@ -803,7 +816,7 @@ console.log('catch1'+res);
 
 
         switch (value) {
-          case "request 4.11.7":
+          case "financial calendar"://"request 4.11.7":
           if (typeof this.attributes['onmonth'] == 'undefined') { // Check if it's the first time the skill has been invoked
           this.emit(":ask", "repeat the single date", "repeat the single date");
             //this.attributes['onmonth'] = "03.2017";
@@ -869,18 +882,20 @@ console.log('catch1'+res);
               //resolve(shuffledMultipleChoiceList);
             })
             .catch(res => {
+              this.emit(':tell', 'Connection error, restart the skill ');
 console.log('catch9'+res);
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
             });
           }).catch(res => {
+            this.emit(':tell', 'Connection error, restart the skill ');
 console.log('catch10'+res);
 });
           break;
 
 
 
-          case "request 4.11.8":
+          case "financial calendar of one day"://"request 4.11.8":
           if (typeof this.attributes['ondate'] == 'undefined') { // Check if it's the first time the skill has been invoked
           this.emit(":ask", "repeat the single date", "repeat the single date");
             //this.attributes['ondate'] = "03.03.2017";
@@ -939,13 +954,14 @@ console.log('catch10'+res);
               //resolve(shuffledMultipleChoiceList);
             })
             .catch(res => {
+              this.emit(':tell', 'Connection error, restart the skill ');
 console.log('catch11'+res);
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
             });
           });
             break;
-          case "request 4.12 as list":
+          case "transaction history as list"://"request 4.12 as list":
           // if ((typeof this.attributes['startstr'] == 'undefined') || (typeof this.attributes['endstr'] == 'undefined')) { // Check if it's the first time the skill has been invoked
           //   this.attributes['startstr'] = "8.11.2015";
           //   this.attributes['endstr'] = "31.3.2018";
@@ -1015,13 +1031,14 @@ console.log('catch11'+res);
 
               })
               .catch((res) => {
+                this.emit(':tell', 'Connection error, restart the skill ');
 console.log('catch12'+res);
                 // reject(0);
                 //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
               });
             });
             break;
-            case "request 4.12 as text":
+            case "transaction history"://"request 4.12 as text":
 
               conn.then(() => {
               //  {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?from=08.11.2010&to=31.03.2018&paginationSize=200&paginationOffset=0
@@ -1093,11 +1110,13 @@ console.log('catch12'+res);
                   //resolve(shuffledMultipleChoiceList);
                 })
                 .catch((res) => {
+                  this.emit(':tell', 'Connection error, restart the skill ');
 console.log('catch13-2'+res);
                   // reject(0);
                   //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
                 });
               }).catch((res) => {
+                this.emit(':tell', 'Connection error, restart the skill ');
               console.log('catch1'+res);
             });
 

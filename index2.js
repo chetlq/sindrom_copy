@@ -269,7 +269,7 @@ console.log("<break time='1s'/> ");
 // });
 conn.then(() => {
 //  {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?from=08.11.2010&to=31.03.2018&paginationSize=200&paginationOffset=0
-  return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+  return autpip(PSI_ROZA.HOST_BLOCK +//+ "/mobile" + GLOBALS.VERSION +
     "/private/payments/list.do?from="+
     '8.11.2010'+"&to="+'31.3.2018'+
     "&paginationSize=100&paginationOffset=1"
