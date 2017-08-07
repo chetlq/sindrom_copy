@@ -53,7 +53,7 @@ var calendar = function(){
         eventDate["res"] = res.length;
       }
       else if (res.length === 2  && res[1].indexOf('FA') == -1 && res[1].indexOf('WI') == -1 && res[1].indexOf('SP') == -1 && res[1].indexOf('SU') == -1) {
-           y = date.getFullYear(), m = date.getMonth();
+           var y = date.getFullYear(); var m = date.getMonth();
            var firstDay = new Date(y, m, 1);
            var lastDay = new Date(y, m + 1, 0);
            eventDate["startDate"] = firstDay;

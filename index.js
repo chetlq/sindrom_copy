@@ -296,13 +296,13 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
                 if (typeof value == 'undefined') this.emit(':ask', "sorry", "sorry");
               switch (value) {
-                case "imaccount":
+                case "imaccounts":
                   var dg = 'imaccount';
                 break;
-                case "account":
+                case "accounts":
                   var dg = 'account';
                 break;
-                case "card":
+                case "cards":
                   var dg = 'card';
                 break;
                 default:
@@ -381,7 +381,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
                promise.then(res => {
 
                  var content = {
-                   "hasDisplaySpeechOutput":  "The chart was built "+getSuccess(shuffledMultipleChoiceList.length!=0)+"fully, "+  shuffledMultipleChoiceList.length+ " items",
+                   "hasDisplaySpeechOutput":  "The chart was built ",
                    "hasDisplayRepromptText": "randomFact1",
                    "simpleCardTitle": 'SKILL_NAME',
                    "simpleCardContent": "res",
@@ -398,7 +398,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
 
                }).catch(res => {
-                 this.emit(':tell', 'Something is wrong, Sorry');
+                 this.emit(':tell', 'Built is wrong, Sorry');
                  console.log('catch8'+res);
                  this.emit(':tellWithCard',res, cardTitle,res, "imageObj");
                });
@@ -476,7 +476,7 @@ console.log("currentpage = "+currentpage);
                 var tvalue = 'operation';
               break;
           default:
-          this.emit(':ask', "dont work for this repeat", "dont work for this repeat");
+          this.emit(':ask', "dont work for this ", "dont work for this ");
 
         }
 
@@ -895,7 +895,7 @@ console.log('catch10'+res);
 
 
 
-          case "financial calendar of one day"://"request 4.11.8":
+          case "financial calendar of day"://"request 4.11.8":
           if (typeof this.attributes['ondate'] == 'undefined') { // Check if it's the first time the skill has been invoked
           this.emit(":ask", "repeat the single date", "repeat the single date");
             //this.attributes['ondate'] = "03.03.2017";
