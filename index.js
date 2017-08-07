@@ -220,18 +220,19 @@ var states = {
 };
 //var conn =  connect();
 var conn;//= reg();;
+
 var newSessionHandlers = {
   'NewSession': function() {
      conn=null;
       conn = reg();
     this.handler.state = states.STARTMODE;
-    this.emit(':ask', 'Welcome1 ');
+    this.emit(':ask', 'Welcome ');
     //'Say yes to start the game or no to quit.
   },
 
   'Unhandled': function () {
     //this.emitWithState('')
-    this.emit(':ask', 'HelpMessage', 'HelpMessage');
+    this.emit('NewSession');
 }
 };
 
@@ -239,9 +240,32 @@ var newSessionHandlers = {
 
 
 var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
-      // 'NewSession': function() {
-      //   this.emit('NewSession'); // Uses the handler in newSessionHandlers
-      // },
+      'NewSession': function() {
+        this.handler.state = '';
+        var response = {
+          "version": "1.0",
+          "response": {
+            "outputSpeech": {
+              "type": "SSML",
+              "ssml": "<speak> " + "connecting error " + "</speak>"
+            },
+            "card": {
+              "content": "",
+              "title": "connecting error ",
+              "type": "Simple"
+            },
+            "speechletResponse": {
+
+              "shouldEndSession": true
+            }
+          },
+          "sessionAttributes": {
+
+          }
+        };
+    console.log(response);
+        this.context.succeed(response);
+      },
       'eventIntent': function() {
         this.handler.state = states.STARTMODE;
 
@@ -362,14 +386,14 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
               })
               .catch(res => {
-                this.emit(':tell', 'Connection error, restart the skill ');
+                this.emit(':tell', 'Error constructing the diagram ');
               console.log('catch6'+res);
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
               });
 
               }).catch(res => {
-                this.emit(':tell', 'Connection error, restart the skill ');
+                this.emit(':tell', 'Error constructing the diagram ');
               console.log('catch7'+res);
               reject(res)
               // reject(0);
@@ -398,9 +422,9 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
 
                }).catch(res => {
-                 this.emit(':tell', 'Built is wrong, Sorry');
+                 this.emitWithState('NewSession');
                  console.log('catch8'+res);
-                 this.emit(':tellWithCard',res, cardTitle,res, "imageObj");
+
                });
 
 
@@ -487,7 +511,7 @@ console.log("currentpage = "+currentpage);
 
 
 
-
+try{
                       conn.then(() => {
                       //  {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?from=08.11.2010&to=31.03.2018&paginationSize=200&paginationOffset=0
                         return autpip(reqstr).then((res) => {
@@ -554,7 +578,7 @@ console.log("currentpage = "+currentpage);
                                 break;
 
                               default:
-                                this.emit(':ask', "repeat", "repeat");
+                                this.emit(':ask', "dont work for this", "dont work for this");
                             }
                           //  if((parseInt(item.amount)!=0)&&(!isNaN(parseInt(item.amount)))){
 
@@ -596,22 +620,29 @@ console.log("currentpage = "+currentpage);
                           //resolve(shuffledMultipleChoiceList);
                         })
                         .catch((res) => {
-                          this.emit(':tell', 'Connection error, restart the skill ');
+                          this.emit(':tell', 'some error, sorry ');
         console.log('catch13'+res);
                           // reject(0);
                           //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
                         });
                       }).catch((res) => {
-                        this.emit(':tell', 'Connection error, restart the skill ');
+                        this.emit(':tell', 'some error, sorry ');
                       console.log('catch1'+res);
                     });
 
+                  } catch (err) {
+                    this.emitWithState('NewSession');
 
+            console.log('catch20'+err);
+                    // обработка ошибки
+
+                  }
 
 
 
       },
       'SayIntent': function() {
+
         var str= " ";
         var str2= "";
         var currentpage = this.attributes['currentpage'];
@@ -633,6 +664,7 @@ console.log("currentpage = "+currentpage);
 switch (request) {
   case '412astext':
 
+
   if ((typeof this.attributes['startstr'] == 'undefined')||(typeof this.attributes['endstr'] == 'undefined')) {this.emit(':ask', "sorry", "sorry");}
   var reqstr = PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
     "/private/payments/list.do?from="+
@@ -652,14 +684,14 @@ switch (request) {
       break;
 
   default:
-  this.emit(':ask', "repeat", "repeat");
+  this.emit(':ask', "dont work for this", "dont work for this");
 
 }
 var tc = currentpage*50+50;
 
 
 
-
+try{
 conn.then(() => {
 //  {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?from=08.11.2010&to=31.03.2018&paginationSize=200&paginationOffset=0
   return autpip(reqstr).then((res) => {
@@ -728,7 +760,7 @@ conn.then(() => {
 
 
         default:
-          this.emit(':ask', "repeat", "repeat");
+          this.emit(':ask', "dont work for this", "dont work for this");
       }
     //  if((parseInt(item.amount)!=0)&&(!isNaN(parseInt(item.amount)))){
 
@@ -773,17 +805,24 @@ console.log(countitems);
     //resolve(shuffledMultipleChoiceList);
   })
   .catch((res) => {
-    this.emit(':tell', 'Connection error, restart the skill ');
+    this.emit(':tell', 'some error, sorry ');
 console.log('catch13'+res);
     // reject(0);
     //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
   });
 }).catch((res) => {
-  this.emit(':tell', 'Connection error, restart the skill ');
+  this.emit(':tell', 'some error, sorry ');
 console.log('catch1'+res);
 });
 
 
+                  } catch (err) {
+                            this.emitWithState('NewSession');
+
+                    console.log('catch20'+err);
+                    // обработка ошибки
+
+                  }
 
 
       },
@@ -816,13 +855,14 @@ console.log('catch1'+res);
 
 
         switch (value) {
+
           case "financial calendar"://"request 4.11.7":
           if (typeof this.attributes['onmonth'] == 'undefined') { // Check if it's the first time the skill has been invoked
           this.emit(":ask", "repeat the single date", "repeat the single date");
             //this.attributes['onmonth'] = "03.2017";
           }
 
-
+          try{
           conn.then(() => {
 
             return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
@@ -882,15 +922,22 @@ console.log('catch1'+res);
               //resolve(shuffledMultipleChoiceList);
             })
             .catch(res => {
-              this.emit(':tell', 'Connection error, restart the skill ');
+              this.emit(':tell', 'some error, sorry ');
 console.log('catch9'+res);
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
             });
           }).catch(res => {
-            this.emit(':tell', 'Connection error, restart the skill ');
+            this.emit(':tell', 'some error, sorry ');
 console.log('catch10'+res);
 });
+} catch (err) {
+  this.emitWithState('NewSession');
+
+console.log('catch21'+err);
+  // обработка ошибки
+
+}
           break;
 
 
@@ -900,6 +947,7 @@ console.log('catch10'+res);
           this.emit(":ask", "repeat the single date", "repeat the single date");
             //this.attributes['ondate'] = "03.03.2017";
           }
+          try{
           conn.then(() => {
 
             return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
@@ -954,18 +1002,26 @@ console.log('catch10'+res);
               //resolve(shuffledMultipleChoiceList);
             })
             .catch(res => {
-              this.emit(':tell', 'Connection error, restart the skill ');
+              this.emit(':tell', 'some error, sorry ');
 console.log('catch11'+res);
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
             });
           });
+        } catch (err) {
+          this.emitWithState('NewSession');
+
+  console.log('catch22'+err);
+          // обработка ошибки
+
+        }
             break;
           case "transaction history as list"://"request 4.12 as list":
           // if ((typeof this.attributes['startstr'] == 'undefined') || (typeof this.attributes['endstr'] == 'undefined')) { // Check if it's the first time the skill has been invoked
           //   this.attributes['startstr'] = "8.11.2015";
           //   this.attributes['endstr'] = "31.3.2018";
           // }
+          try{
 
             conn.then(() => {
 
@@ -1031,15 +1087,22 @@ console.log('catch11'+res);
 
               })
               .catch((res) => {
-                this.emit(':tell', 'Connection error, restart the skill ');
+                this.emit(':tell', 'some error, sorry ');
 console.log('catch12'+res);
                 // reject(0);
                 //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
               });
             });
+          } catch (err) {
+            this.emitWithState('NewSession');
+
+    console.log('catch23'+err);
+            // обработка ошибки
+
+          }
             break;
             case "transaction history"://"request 4.12 as text":
-
+try {
               conn.then(() => {
               //  {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?from=08.11.2010&to=31.03.2018&paginationSize=200&paginationOffset=0
                 return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
@@ -1110,16 +1173,22 @@ console.log('catch12'+res);
                   //resolve(shuffledMultipleChoiceList);
                 })
                 .catch((res) => {
-                  this.emit(':tell', 'Connection error, restart the skill ');
+                  this.emit(':tell', 'some error, sorry ');
 console.log('catch13-2'+res);
                   // reject(0);
                   //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
                 });
               }).catch((res) => {
-                this.emit(':tell', 'Connection error, restart the skill ');
+                this.emit(':tell', 'some error, sorry ');
               console.log('catch1'+res);
             });
+          } catch (err) {
+            this.emitWithState('NewSession');
 
+    console.log('catch24'+err);
+            // обработка ошибки
+
+          }
               break;
           default:
             this.emit(':ask', "nothing", "nothing");
