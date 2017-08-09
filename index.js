@@ -87,7 +87,12 @@ var autpip = function(addr) {
 };
 
 
-var reg = function(){return autpip(PSI_ROZA.HOST +
+var conn2;
+var autpip2;
+
+var reg = function(){
+    try{
+  return autpip(PSI_ROZA.HOST +
     '/CSAMAPI/registerApp.do?operation=register&login=' + PSI_ROZA.LOGIN +
     '&version=' + GLOBALS.VERSION +
     '.10&appType=iPhone&appVersion=5.5.0&deviceName=Simulator&devID=' +
@@ -133,7 +138,11 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
 }).then(token=>{
 
   return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-    "/postCSALogin.do?token=" + token)
+    "/postCSALogin.do?token=" + token).catch(res => {
+      this.emit(':tell', 'Connection error, restart the skill ');
+      console.log('catch31'+res);
+    return res;
+    });
 
 
   //console.log(token);
@@ -142,6 +151,14 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
   console.log('catch5'+res);
 return res;
 });
+
+} catch (err) {
+  this.emitWithState('NewSession');
+
+console.log('catch30'+err);
+  // обработка ошибки
+
+}
 };
 
 
@@ -287,6 +304,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
       },
 
       'DiagramIntent': function() {
+        var self = this;
         function compareNumeric(a, b) {
           var att = a.balance.replace(/\s/g, "");
           var btt = b.balance.replace(/\s/g, "");
@@ -318,7 +336,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
               //var dg = true;
 
-                if (typeof value == 'undefined') this.emit(':ask', "sorry", "sorry");
+                if (typeof value == 'undefined') self.emit(':ask', "sorry", "sorry");
               switch (value) {
                 case "imaccounts":
                   var dg = 'imaccount';
@@ -386,15 +404,18 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
               })
               .catch(res => {
-                this.emit(':tell', 'Error constructing the diagram ');
-              console.log('catch6'+res);
+                console.log('catch6'+res);
+
+                  self.emitWithState('NewSession');
+
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
               });
 
               }).catch(res => {
-                this.emit(':tell', 'Error constructing the diagram ');
-              console.log('catch7'+res);
+                console.log('catch7'+res);
+
+                  self.emitWithState('NewSession');
               reject(res)
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
@@ -503,13 +524,6 @@ console.log("currentpage = "+currentpage);
           this.emit(':ask', "dont work for this ", "dont work for this ");
 
         }
-
-
-
-
-
-
-
 
 try{
                       conn.then(() => {
@@ -928,7 +942,7 @@ console.log('catch9'+res);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
             });
           }).catch(res => {
-            this.emit(':tell', 'some error, sorry ');
+            this.emitWithState('NewSession');
 console.log('catch10'+res);
 });
 } catch (err) {
@@ -1007,7 +1021,12 @@ console.log('catch11'+res);
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
             });
-          });
+          }).catch(res => {
+                        this.emitWithState('NewSession');
+          console.log('catch32'+res);
+                        // reject(0);
+                        //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+                      });
         } catch (err) {
           this.emitWithState('NewSession');
 
@@ -1092,7 +1111,12 @@ console.log('catch12'+res);
                 // reject(0);
                 //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
               });
-            });
+            }).catch((res) => {
+              this.emitWithState('NewSession');
+console.log('catch33'+res);
+              // reject(0);
+              //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+            });;
           } catch (err) {
             this.emitWithState('NewSession');
 
