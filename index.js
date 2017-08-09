@@ -72,7 +72,7 @@ var autpip = function(addr) {
       });
     }).catch(err => {
 
-      this.emit(':tell', 'Connection error, restart the skill ');
+      this.emit(':tell', 'Connectiion error ');
       console.log('catch1'+err);
       reject(err)
     })
@@ -323,7 +323,7 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
         conn.then(() => {
 
-          return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+          return autpip.call(self,PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
                       "/private/graphics/finance.do"
             ).then((res) => {
 
