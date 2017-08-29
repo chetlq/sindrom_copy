@@ -1,14 +1,26 @@
 'use strict';
+
+var moment = require('moment');
 const PSI_ROZA = {
-  LOGIN: "3554678395",
+  LOGIN: "9882974166",//"3554678395",
   HOST: "http://194.186.207.23",
   HOST_BLOCK: "http://194.186.207.23",
   SMS_PASS: "55098",
-  mGUID: "4856a406c200643f529efd6fe5e90fae",
-  token: "59821587bc4405b466f4fc6e731efa16",
+  mGUID: "93d727547c5b97ae9dbc9a4bfc41f294",//"4856a406c200643f529efd6fe5e90fae",
+  token: "6abe40afbd29b0d2ac19f1f9052d0d4d",//"59821587bc4405b466f4fc6e731efa16",
   PASS: "11223",
   PFMtoken: "b02ddd9811f476eebfbce27ca8f404b1"
 };
+// const PSI_ROZA = {
+//   LOGIN: "3554678395",
+//   HOST: "http://194.186.207.23",
+//   HOST_BLOCK: "http://194.186.207.23",
+//   SMS_PASS: "55098",
+//   mGUID: "4856a406c200643f529efd6fe5e90fae",
+//   token: "59821587bc4405b466f4fc6e731efa16",
+//   PASS: "11223",
+//   PFMtoken: "b02ddd9811f476eebfbce27ca8f404b1"
+// };
 const GLOBALS = {
   DEVID: "09D4B172-B264-419A-BFBE-6EA7E02B6239",
   VERSION: "9",
@@ -73,7 +85,7 @@ var autpip = function(addr) {
   return promise.then(res => {
     return res
   }).catch(err => {
-    console.log(err);
+    console.log("err2");
   })
 };
 
@@ -111,26 +123,59 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
         console.log("token = "+token);
         return token;
       }).catch(res => {
-        console.log(res);
+        console.log("res1");
       return res;
                     // reject(0);
                     //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
                   });
   //  console.log(res);
 }).then(token=>{
-
+console.log("ttt "+token);
   return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
     "/postCSALogin.do?token=" + token)
 
 
-  //console.log(token);
+
 }).catch(res => {
-  console.log(res);
+  console.log("res2");
 return res;
 });
 };
 
+// {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?
+// from=08.11.2000&to=01.03.2018&paginationSize=20&paginationOffset=0
+var conn = reg();
 
+
+function isEmpty(obj,val) {
+    if(obj[val]!==undefined){ return true;}else{ return false; }
+};
+
+function unique(arr) {
+  var obj = {};
+var count=0;
+  for (var i = 0; i < arr.length; i++) {
+    var str = arr[i].date;
+    if (isEmpty(obj,arr[i].date)){count +=arr[i].amount;}else{count =arr[i].amount;}
+    obj[str] = count; // запомнить строку в виде свойства объекта
+  }
+
+  return obj; // или собрать ключи перебором для IE8-
+};
+
+function unique2(arr) {
+  var obj = {};
+var count=0;
+  //for (var i = 0; i < arr.length; i++) {
+  for(var key in arr){
+    var str = key;
+    var str2 = str.substring(str.indexOf(".")+1,str.length);
+    if (isEmpty(obj,str2)){count +=arr[key];}else{count =arr[key];}
+    obj[str2] = count; // запомнить строку в виде свойства объекта
+  }
+
+  return obj; // или собрать ключи перебором для IE8-
+};
 var t = function(objroot,val,arr) {
 
          var myobj = {
@@ -205,7 +250,7 @@ var mydate = function(slotValuefrom,slotValueto){
     else  {return data;}
 }else{return null}};
 
-var conn = reg();
+
 
 
 var c = function(){
@@ -221,104 +266,147 @@ var c = function(){
   return rgb2hex('('+v()+', '+v()+', '+v()+')');
 }
 
-console.log("<break time='1s'/> ");
 
-// conn.then(() => {
-//
-//   return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-//               "/private/graphics/finance.do"
-//     ).then((res) => {
-//
-//
-//       var obj = parse(res);
-//
-//       var str = "";
-//       var s = "";
-//       var shuffledMultipleChoiceList = [];
-//
-//         var arr = ["id", "balance"];
-//       var myobj = t(obj.root,"card", arr);
-//       //console.log(myobj.operations.length);
-//       var arr = [];
-//
-//       var arr2 = [];
-//
-//       myobj.operations.forEach(function(item, i) {
-//         var ttt = item.balance.replace(/\s/g, "");
-//         if (parseInt(ttt) > 0) {
-//           console.log(item.id + " | balance = " + item.balance + " ₽");
-//           // pie.addData(parseInt(ttt), "id = " + item.id + " ", c());
-//           // arr.push(parseInt(ttt));
-//           //
-//           // shuffledMultipleChoiceList.push(item.id + " | balance = " + item.balance + " ₽");
-//           // console.log(item.id + " | balance = " + item.balance + " ₽");
-//         }
-//       });
-//
-//     })
-//     .catch(res => {
-//     console.log(res);
-//     // reject(0);
-//     //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
-//     });
-//
-//   }).catch(res => {
-//   console.log(res);
-//   // reject(0);
-//   //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
-// });
 conn.then(() => {
-//  {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?from=08.11.2010&to=31.03.2018&paginationSize=200&paginationOffset=0
-  return autpip(PSI_ROZA.HOST_BLOCK +//+ "/mobile" + GLOBALS.VERSION +
+  var from = '26.08.2017';
+  var to = '28.08.2017';
+  return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
     "/private/payments/list.do?from="+
-    '8.11.2010'+"&to="+'31.3.2018'+
-    "&paginationSize=100&paginationOffset=1"
-  ).then((res) => {
+    from+"&to="+to+
+    "&paginationSize=99999&paginationOffset=0"
+  )
+  .then((res) => {
+        var obj = parse(res);
+        //console.log(obj.root);
 
-    var obj = parse(res);
-    //console.log(obj.root);
+        var shuffledMultipleChoiceList = [];
+        var arr = ["type", "form", "date", "operationAmount"];
+        var myobj = t(obj.root, 'operation', arr);
+        var str = "";
+        //var readstr = [];
+        var j=0;
+        myobj.operations.forEach(function(item, i) {
+          //if((parseInt(item.amount)!=0)&&(!isNaN(parseInt(item.amount)))){
+            var type = item.type || "not type";
+            type =type.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
+            var form = item.form || "not type";
+            form = form.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
+            var date =item.date || "npt date T ";
+            date =date.split("T")[0]+"";
+            date = date.replace(/[^\d\sA-Za-zА-Яа-я/.]/gi,"");
+            var amount = item.amount || 0;
+            amount = Math.round(parseInt(amount));
+            var code = item.code || "not code";
+            code =code.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
+            if (amount!==0){
+              j++;
+              //console.log(j+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>");
+              shuffledMultipleChoiceList.push({"date":date,"amount":amount})
 
-    var shuffledMultipleChoiceList = [];
-    var arr = ["type", "form", "date", "operationAmount"];
-    var myobj = t(obj.root, 'operation', arr);
-    var str = "";
-    //var readstr = [];
-    myobj.operations.forEach(function(item, i) {
-      //if((parseInt(item.amount)!=0)&&(!isNaN(parseInt(item.amount)))){
-        var type = item.type || "not type";
-        type =type.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
-        var form = item.form || "not type";
-        form = form.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
-        var date =item.date || "npt date T ";
-        date =date.split("T")[0]+"";
-        date = date.replace(/[^\d\sA-Za-zА-Яа-я/.]/gi,"");
-        var amount = item.amount || 0;
-        amount = Math.round(parseInt(amount))+"";
-        var code = item.code || "not code";
-        code =code.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
+            }
+                          //str +=i+1+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>";
+      });
 
-      //str +=i+1+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>";
-
-
-
-console.log(i+1+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>");
-
-
-
-
-    // console.log(shuffledMultipleChoiceList);
-    // this.emit(':ask', value + "1", value);
-    //  resolve(shuffledMultipleChoiceList)
-    //resolve(shuffledMultipleChoiceList);
-  })
-  .catch((res) => {
-console.log('catch13-2'+res);
-    // reject(0);
-    //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+shuffledMultipleChoiceList = (function(){
+if (shuffledMultipleChoiceList.length > 100 && from!==to) {
+  console.log(">100");
+  var positive = shuffledMultipleChoiceList.filter(function(item) {
+    return item.amount > 0;
+});
+  var negative = shuffledMultipleChoiceList.filter(function(item) {
+    return item.amount < 0;
   });
-}).catch((res) => {
-console.log('catch1'+res);
+  console.log(positive.length);
+  var sortNeg = unique(negative);
+  //console.log(sortNeg.length);
+  var sortPos = unique(positive);
+  if ((Object.keys(sortNeg).length+Object.keys(sortPos).length) > 100) {
+    console.log("2 >100");
+    sortPos = unique2(sortPos);
+    sortNeg = unique2(sortNeg);
+    shuffledMultipleChoiceList = [];
+    for (var variable in sortPos) {
+      shuffledMultipleChoiceList.push({"date":variable,"amount":sortPos[variable]})
+    };
+    for (var variable in sortNeg) {
+      shuffledMultipleChoiceList.push({"date":variable,"amount":sortNeg[variable]})
+    }
+
+    return shuffledMultipleChoiceList
+  }
+  else {
+    shuffledMultipleChoiceList = [];
+    for (var variable in sortPos) {
+      shuffledMultipleChoiceList.push({"date":variable,"amount":sortPos[variable]})
+    };
+    for (var variable in sortNeg) {
+      shuffledMultipleChoiceList.push({"date":variable,"amount":sortNeg[variable]})
+    }
+
+    return shuffledMultipleChoiceList
+  }
+
+}
+
+else{
+  //console.log(shuffledMultipleChoiceList);
+  return shuffledMultipleChoiceList;
+}
+})();
+
+console.log(shuffledMultipleChoiceList);
+
+console.log(shuffledMultipleChoiceList.length);
+
+//
+if(shuffledMultipleChoiceList.length>0 && (shuffledMultipleChoiceList[0].date.split(".").length - 1)==2){
+shuffledMultipleChoiceList.sort(function(a,b){
+
+if (moment(a.date, "DD.MM.YYYY")>moment(b.date, "DD.MM.YYYY")) {return 1}
+else{return -1}
+
 });
-}).catch((res) => {
-console.log('catch1'+res);
+}else{
+  console.log("else");
+  shuffledMultipleChoiceList.sort(function(a,b){
+
+  if (moment("01."+a.date, "DD.MM.YYYY")>moment("01."+b.date, "DD.MM.YYYY")) {return 1}
+  else{return -1}
+
+  });
+};
+//console.log(shuffledMultipleChoiceList);
+//
+
+
+shuffledMultipleChoiceList.reduce(function(previousValue, currentItem, index) {
+  if (previousValue.date.trim()==currentItem.date) {
+   currentItem.date=previousValue.date+" ";
+ };
+     return currentItem
 });
+console.log("///////////////////////////////////////////////");
+shuffledMultipleChoiceList.forEach(item => console.log(item));
+
+
+// negative.forEach(item => console.log(item));
+
+
+// console.log(sortNeg);
+// console.log(sortPos);
+// console.log(Object.keys(sortNeg).length);
+// console.log(Object.keys(sortPos).length);
+
+
+// for(var key in sortPos){
+//   console.log("key "+key.substring(key.indexOf(".")+1,key.length)+" value "+sortPos[key]);
+// };
+// console.log(unique2(sortPos));
+// console.log(unique2(sortNeg));
+      ///console.log(negative);
+    }).catch((res) => {
+    console.log('catch10'+res);
+    });
+    }).catch((res) => {
+    console.log('catch12'+"res");
+    });

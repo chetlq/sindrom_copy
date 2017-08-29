@@ -1,11 +1,11 @@
 'use strict';
 const PSI_ROZA = {
-  LOGIN: "3554678395",
+  LOGIN: "9882974166",//"3554678395",
   HOST: "http://194.186.207.23",
   HOST_BLOCK: "http://194.186.207.23",
   SMS_PASS: "55098",
-  mGUID: "4856a406c200643f529efd6fe5e90fae",
-  token: "59821587bc4405b466f4fc6e731efa16",
+  mGUID: "93d727547c5b97ae9dbc9a4bfc41f294",//"4856a406c200643f529efd6fe5e90fae",
+  token: "6abe40afbd29b0d2ac19f1f9052d0d4d",//"59821587bc4405b466f4fc6e731efa16",
   PASS: "11223",
   PFMtoken: "b02ddd9811f476eebfbce27ca8f404b1"
 };
@@ -36,9 +36,11 @@ var iconv = require('iconv-lite');
 var Alexa = require("alexa-sdk");
 var parse = require('xml-parser');
 const axios = require('axios');
-
+const axios2 = require('axios');
+var https = require('https');
 var date = require('./calendar');
 var calendar = new date();
+var moment = require('moment');
 
 var getDate = require('./getDate');
 
@@ -85,7 +87,35 @@ var autpip = function(addr) {
     console.log('catch2'+err);
   })
 };
+function isEmpty(obj,val) {
+    if(obj[val]!==undefined){ return true;}else{ return false; }
+};
 
+function unique(arr) {
+  var obj = {};
+var count=0;
+  for (var i = 0; i < arr.length; i++) {
+    var str = arr[i].date;
+    if (isEmpty(obj,arr[i].date)){count +=arr[i].amount;}else{count =arr[i].amount;}
+    obj[str] = count; // запомнить строку в виде свойства объекта
+  }
+
+  return obj; // или собрать ключи перебором для IE8-
+};
+
+function unique2(arr) {
+  var obj = {};
+var count=0;
+  //for (var i = 0; i < arr.length; i++) {
+  for(var key in arr){
+    var str = key;
+    var str2 = str.substring(str.indexOf(".")+1,str.length);
+    if (isEmpty(obj,str2)){count +=arr[key];}else{count =arr[key];}
+    obj[str2] = count; // запомнить строку в виде свойства объекта
+  }
+
+  return obj; // или собрать ключи перебором для IE8-
+};
 
 var conn2;
 var autpip2;
@@ -239,11 +269,55 @@ var states = {
 var conn;//= reg();;
 
 var newSessionHandlers = {
+  'AMAZON.HelpIntent': function() {
+    this.handler.state = states.STARTMODE;
+var message = ' There are five actions, such as : 1st, get data for financial calendar  for date your date,'+
+' second, get data for transaction history as list for interval from date to date , '+
+'third, get data for transaction history for interval from date to date, fourth, show diagram of accounts, cards or imaccounts.'+
+'For some queries navigation is possible. Using the phrase,  navigation next, last, first or previous';
+this.emit(':ask', message, message);
+},
+ "AMAZON.StopIntent": function() {
+      console.log("STOPINTENT");
+          this.emitWithState('Exit');
+    },
+    "AMAZON.CancelIntent": function() {
+      console.log("CANCELINTENT");
+      this.emitWithState('Exit');
+
+    },
+    'Exit': function(){
+      this.handler.state = '';
+      var response = {
+        "version": "1.0",
+        "response": {
+          "outputSpeech": {
+            "type": "SSML",
+            "ssml": "<speak> " + "Goodbye! The skill will be restarted " + "</speak>"
+          },
+          "card": {
+            "content": "",
+            "title": "Goodbye! The skill will be restarted ",
+            "type": "Simple"
+          },
+          "speechletResponse": {
+
+            "shouldEndSession": true
+          }
+        },
+        "sessionAttributes": {
+
+        }
+      };
+  console.log(response);
+      this.context.succeed(response);
+    },
   'NewSession': function() {
      conn=null;
       conn = reg();
     this.handler.state = states.STARTMODE;
-    this.emit(':ask', 'Welcome ');
+    var message = "Welcome to bank account checker. Say invocation phrase of the required action."
+    this.emit(':ask', message,message);
     //'Say yes to start the game or no to quit.
   },
 
@@ -257,6 +331,48 @@ var newSessionHandlers = {
 
 
 var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
+  'AMAZON.HelpIntent': function() {
+var message = ' There are five actions, such as : 1st, get data for financial calendar  for date your date,'+
+' second, get data for transaction history as list for interval from date to date , '+
+'third, get data for transaction history for interval from date to date, fourth, show diagram of accounts, cards or imaccounts.'+
+'For some queries navigation is possible. Using the phrase,  navigation next, last, first or previous';
+this.emit(':ask', message, message);
+},
+ "AMAZON.StopIntent": function() {
+      console.log("STOPINTENT");
+          this.emitWithState('Exit');
+    },
+    "AMAZON.CancelIntent": function() {
+      console.log("CANCELINTENT");
+      this.emitWithState('Exit');
+
+    },
+    'Exit': function(){
+      this.handler.state = '';
+      var response = {
+        "version": "1.0",
+        "response": {
+          "outputSpeech": {
+            "type": "SSML",
+            "ssml": "<speak> " + "Goodbye! The skill will be restarted " + "</speak>"
+          },
+          "card": {
+            "content": "",
+            "title": "Goodbye! The skill will be restarted ",
+            "type": "Simple"
+          },
+          "speechletResponse": {
+
+            "shouldEndSession": true
+          }
+        },
+        "sessionAttributes": {
+
+        }
+      };
+  console.log(response);
+      this.context.succeed(response);
+    },
       'NewSession': function() {
         this.handler.state = '';
         var response = {
@@ -283,25 +399,446 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
     console.log(response);
         this.context.succeed(response);
       },
+
       'eventIntent': function() {
-        this.handler.state = states.STARTMODE;
 
-        var slotValuefrom = this.event.request.intent.slots.datefrom.value||this.attributes['slotValuefrom']||this.attributes['startstr']||null;
-        var slotValueto = this.event.request.intent.slots.dateto.value||this.attributes['slotValueto']||this.attributes['endstr']||null;
-        var slotDate = this.event.request.intent.slots.date.value || null;
-        console.log(slotValuefrom+" to "+slotValueto);
-            var arr = getDate.call(this,this.attributes['startstr'],this.attributes['endstr'],slotValuefrom,slotValueto,slotDate);
 
-          this.attributes['startstr'] = arr[0];
-          this.attributes['endstr'] = arr[1];
-          this.attributes['slotValuefrom'] = undefined;
-          this.attributes['slotValueto'] = undefined;
-          var str = "start: "+arr[0]+" - end: " + arr[1];
-          this.emit(':askWithCard', str, "haveEventsRepromt", "cardTitle", str);
-          //  this.emit(':ask', "start: "+new Date(eventDate.startDate)+" - end: " + new Date(eventDate.endDate), HelpMessage);
+        var self = this;
+        function compareNumeric(a, b) {
+          var att = a.amount.replace(/\s/g, "");
+          var btt = b.amount.replace(/\s/g, "");
+          if (parseInt(att) > parseInt(btt)) return 1;
+          if (parseInt(att) < parseInt(btt)) return -1;
+        };
+        var value = "cards";//this.event.request.intent.slots.dg.value;
+        console.log(" value  - "+ value);
+        if(value === null)
+        this.emit(':ask', value, "sorry");
 
+         //var promise = new Promise(function(resolve, reject) {
+
+           //var value = this.event.request.intent.slots.dg.value || null;
+
+
+        conn.then(() => {
+
+          return autpip.call(self,PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+    "/private/payments/list.do?from=08.11.2000&to=01.03.2018&paginationSize=100000&paginationOffset=0").then((res) => {
+
+
+              var obj = parse(res);
+
+              var str = "";
+              var s = "";
+              var shuffledMultipleChoiceList = [];
+
+
+                  var dg = 'card';
+                  var arr2 = [];
+
+              var tvalue = 'operation';
+              var arr = ["id", "operationAmount"];
+              var myobj = t(obj.root,tvalue, arr);
+              //console.log(myobj.operations.length);
+
+              myobj.operations.forEach(function(item, i) {
+
+          var id = item.id || "not type";
+          id = id.replace(/[^\d\sA-Za-zА-Яа-я]/gi, "");
+          var amount = item.amount || 0;
+          amount = Math.round(parseInt(amount)) + "";
+          var obj = {id,amount};
+
+          if (amount !=0) {
+            //console.log(amount);
+            str += i + 1 + amount + "<br/>";
+            arr2.push(obj);
+
+          //  str2 += i + 1 + ", " + type + ", " + form + ", " + date + ", " + amount + " " + code + ", next,";
+
+          };
+        });
+
+        arr2.sort(compareNumeric);
+
+
+        arr2.forEach(function(item, i) {
+          console.log(item.id+" - "+item.amount);
+
+        });
+        console.log(arr2.length);
+
+
+        this.emit(':ask', "success");
+
+
+      }).catch(res => {
+        this.emitWithState('NewSession');
+        console.log('catch8'+res);
+
+      });
+    }).catch(res => {
+      this.emitWithState('NewSession');
+      console.log('catch8'+res);
+
+    });
+
+/*
+
+              arr = [];
+
+              var arr2 = [];
+              pie.setTransparentBackground();
+              pie.addPercent();
+
+              myobj.operations.forEach(function(item, i) {
+                var ttt = item.balance.replace(/\s/g, "");
+                if (parseInt(ttt) > 0) {
+                  arr2.push(item);
+                  // pie.addData(parseInt(ttt), "id = " + item.id + " ", c());
+                  // arr.push(parseInt(ttt));
+                  //
+                  // shuffledMultipleChoiceList.push(item.id + " | balance = " + item.balance + " ₽");
+                  // console.log(item.id + " | balance = " + item.balance + " ₽");
+                }
+              });
+              arr2.sort(compareNumeric);
+              arr2.reverse() ;
+
+              for (var i = 0; i < arr2.length; i++) {
+                var ttt = arr2[i].balance.replace(/\s/g, "");
+                console.log(ttt);
+                pie.addData(parseInt(ttt), "id = " + arr2[i].id + " ", c());
+                arr.push(parseInt(ttt));
+
+                shuffledMultipleChoiceList.push(arr2[i].id + " | balance = " + arr2[i].balance + " ₽");
+                console.log(arr2[i].id + " | balance = " + arr2[i].balance + " ₽");
+              };
+
+              // myobj.operations.forEach(function(item, i) {
+              //   var ttt = item.balance.replace(/\s/g, "");
+              //   if (parseInt(ttt) > 0 {
+              //     pie.addData(parseInt(ttt), "id = " + item.id + " ", c());
+              //     arr.push(parseInt(ttt));
+              //
+              //     shuffledMultipleChoiceList.push(item.id + " | balance = " + item.balance + " ₽");
+              //     console.log(item.id + " | balance = " + item.balance + " ₽");
+              //   }
+              // });
+              //arr.reverse() ;
+              pie.setLabel(arr);
+              var Url = pie.getUrl(true);
+              pie =  new Quiche('pie');
+              resolve(Url);
+
+              })
+              .catch(res => {
+                console.log('catch6'+res);
+
+                  self.emitWithState('NewSession');
+
+              // reject(0);
+              //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+              });
+
+              }).catch(res => {
+                console.log('catch7'+res);
+
+                  self.emitWithState('NewSession');
+              reject(res)
+              // reject(0);
+              //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
+              });
+            });
+
+
+               promise.then(res => {
+
+                 var content = {
+                   "hasDisplaySpeechOutput":  "The chart was built ",
+                   "hasDisplayRepromptText": "randomFact1",
+                   "simpleCardTitle": 'SKILL_NAME',
+                   "simpleCardContent": "res",
+                   "bodyTemplateTitle": '',
+                   "bodyTemplateContent": "",
+                   "templateToken": "factBodyTemplate",
+                   "askOrTell": ":ask",
+                   "imageUrl":res,
+                   "sessionAttributes": {
+                     "STATE": states.STARTMODE
+                   }
+                 };
+                 renderTemplate2.call(this, content);
+
+*/
+
+
+
+        // this.handler.state = states.STARTMODE;
+        //
+        // var slotValuefrom = this.event.request.intent.slots.datefrom.value||this.attributes['slotValuefrom']||this.attributes['startstr']||null;
+        // var slotValueto = this.event.request.intent.slots.dateto.value||this.attributes['slotValueto']||this.attributes['endstr']||null;
+        // var slotDate = this.event.request.intent.slots.date.value || null;
+        // console.log(slotValuefrom+" to "+slotValueto);
+        //     var arr = getDate.call(this,this.attributes['startstr'],this.attributes['endstr'],slotValuefrom,slotValueto,slotDate);
+        //
+        //   this.attributes['startstr'] = arr[0];
+        //   this.attributes['endstr'] = arr[1];
+        //   this.attributes['slotValuefrom'] = undefined;
+        //   this.attributes['slotValueto'] = undefined;
+        //   var str = "start: "+arr[0]+" - end: " + arr[1];
+        //   this.emit(':askWithCard', str, "haveEventsRepromt", "cardTitle", str);
+        //   //  this.emit(':ask', "start: "+new Date(eventDate.startDate)+" - end: " + new Date(eventDate.endDate), HelpMessage);
 
       },
+
+      'DiagramBar': function() {
+        var self = this;
+
+
+        conn.then(() => {
+          var from = '26.08.2017';
+          var to = '28.08.2017';
+          return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+            "/private/payments/list.do?from="+
+            from+"&to="+to+
+            "&paginationSize=99999&paginationOffset=0"
+          )
+          .then((res) => {
+                var obj = parse(res);
+                //console.log(obj.root);
+
+                var shuffledMultipleChoiceList = [];
+                var arr = ["type", "form", "date", "operationAmount"];
+                var myobj = t(obj.root, 'operation', arr);
+                var str = "";
+                //var readstr = [];
+                var j=0;
+                myobj.operations.forEach(function(item, i) {
+                  //if((parseInt(item.amount)!=0)&&(!isNaN(parseInt(item.amount)))){
+                    var type = item.type || "not type";
+                    type =type.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
+                    var form = item.form || "not type";
+                    form = form.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
+                    var date =item.date || "npt date T ";
+                    date =date.split("T")[0]+"";
+                    date = date.replace(/[^\d\sA-Za-zА-Яа-я/.]/gi,"");
+                    var amount = item.amount || 0;
+                    amount = Math.round(parseInt(amount));
+                    var code = item.code || "not code";
+                    code =code.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
+                    if (amount!==0){
+                      j++;
+                      //console.log(j+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>");
+                      shuffledMultipleChoiceList.push({"date":date,"amount":amount})
+
+                    }
+                                  //str +=i+1+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>";
+              });
+
+        shuffledMultipleChoiceList = (function(){
+        if (shuffledMultipleChoiceList.length > 100 && from!==to) {
+          console.log(">100");
+          var positive = shuffledMultipleChoiceList.filter(function(item) {
+            return item.amount > 0;
+        });
+          var negative = shuffledMultipleChoiceList.filter(function(item) {
+            return item.amount < 0;
+          });
+          console.log(positive.length);
+          var sortNeg = unique(negative);
+          //console.log(sortNeg.length);
+          var sortPos = unique(positive);
+          if ((Object.keys(sortNeg).length+Object.keys(sortPos).length) > 100) {
+            console.log("2 >100");
+            sortPos = unique2(sortPos);
+            sortNeg = unique2(sortNeg);
+            shuffledMultipleChoiceList = [];
+            for (var variable in sortPos) {
+              shuffledMultipleChoiceList.push({"date":variable,"amount":sortPos[variable]})
+            };
+            for (var variable in sortNeg) {
+              shuffledMultipleChoiceList.push({"date":variable,"amount":sortNeg[variable]})
+            }
+
+            return shuffledMultipleChoiceList
+          }
+          else {
+            shuffledMultipleChoiceList = [];
+            for (var variable in sortPos) {
+              shuffledMultipleChoiceList.push({"date":variable,"amount":sortPos[variable]})
+            };
+            for (var variable in sortNeg) {
+              shuffledMultipleChoiceList.push({"date":variable,"amount":sortNeg[variable]})
+            }
+
+            return shuffledMultipleChoiceList
+          }
+
+        }
+
+        else{
+          //console.log(shuffledMultipleChoiceList);
+          return shuffledMultipleChoiceList;
+        }
+        })();
+
+        console.log(shuffledMultipleChoiceList);
+
+        console.log(shuffledMultipleChoiceList.length);
+
+        //
+        if(shuffledMultipleChoiceList.length>0 && (shuffledMultipleChoiceList[0].date.split(".").length - 1)==2){
+        shuffledMultipleChoiceList.sort(function(a,b){
+
+        if (moment(a.date, "DD.MM.YYYY")>moment(b.date, "DD.MM.YYYY")) {return 1}
+        else{return -1}
+
+        });
+        }else{
+          console.log("else");
+          shuffledMultipleChoiceList.sort(function(a,b){
+
+          if (moment("01."+a.date, "DD.MM.YYYY")>moment("01."+b.date, "DD.MM.YYYY")) {return 1}
+          else{return -1}
+
+          });
+        };
+        //console.log(shuffledMultipleChoiceList);
+        //
+
+
+        shuffledMultipleChoiceList.reduce(function(previousValue, currentItem, index) {
+          if (previousValue.date.trim()==currentItem.date) {
+           currentItem.date=previousValue.date+" ";
+         };
+             return currentItem
+        });
+        console.log("///////////////////////////////////////////////");
+        shuffledMultipleChoiceList.forEach(item => console.log(item));
+
+        axios2.post('https://google-chart.herokuapp.com/rr',shuffledMultipleChoiceList).then(function(res) {
+          console.log("statusCode: ", res.status); // <======= Here's the status code
+          // console.log("headers: ", res.headers);
+          if(res.status == 200){
+             var content = {
+               "hasDisplaySpeechOutput":  "The chart was built ",
+               "hasDisplayRepromptText": "The chart was built",
+               "simpleCardTitle": 'The chart was built',
+               "simpleCardContent": 'The chart of was built',
+               "bodyTemplateTitle": 'The chart was built',
+               "bodyTemplateContent": 'The chart of was built',
+               "templateToken": "factBodyTemplate",
+               "askOrTell": ":ask",
+               "imageUrl":'https://google-chart.herokuapp.com/ff',
+               "sessionAttributes": {
+                 "STATE": states.STARTMODE
+               }
+             };
+             renderTemplate2.call(self, content);
+          }else{
+            self.emit(':tell',"failed1");
+          }
+            console.log(res.data);
+            console.log(res.status);
+            console.log(res.statusText);
+            // console.log(response.headers);
+            // console.log(response.config);
+          })
+        .catch(res=>console.log(res.status));
+
+
+            }).catch((res) => {
+            console.log('catch10'+res);
+            });
+            }).catch((res) => {
+            console.log('catch12'+"res");
+            });
+
+
+
+
+        //
+        // var arr = [ { date: '28.08.2017', amount: 8105 },
+        //   { date: '26.08.2017', amount: 173008 },
+        //   { date: '28.08.2017 ', amount: -48990274 },
+        //   { date: '26.08.2017 ', amount: -8773 } ,
+        //   { date: '28.08.2017    ', amount: 8105 },
+        //     { date: '26.08.2017       ', amount: -173008 },
+        //     { date: '28.08.2017  ', amount: 48990274 },
+        //     { date: '26.08.2017  ', amount: -8773 }];
+
+        //console.log(JSON.stringify(arr));
+
+
+/*
+https.post('https://google-chart.herokuapp.com/', function(req,res) {
+
+  console.log("statusCode: ", res.statusCode); // <======= Here's the status code
+  console.log("headers: ", res.headers);
+  if(res.statusCode == 200){
+     var content = {
+       "hasDisplaySpeechOutput":  "The chart was built ",
+       "hasDisplayRepromptText": "The chart was built",
+       "simpleCardTitle": 'The chart was built',
+       "simpleCardContent": 'The chart of was built',
+       "bodyTemplateTitle": 'The chart was built',
+       "bodyTemplateContent": 'The chart of was built',
+       "templateToken": "factBodyTemplate",
+       "askOrTell": ":ask",
+       "imageUrl":'https://google-chart.herokuapp.com/',
+       "sessionAttributes": {
+         "STATE": states.STARTMODE
+       }
+     };
+     renderTemplate2.call(self, content);
+  }else{
+    self.emit(':tell',"failed1");
+  }
+
+  // res.on('data', function(d) {
+  //   process.stdout.write(d);
+  // });
+
+}).on('error', function(e) {
+  self.emit(':tell',"failed2");
+  console.error(e);
+});
+*/
+        // var promise = new Promise(function(resolve, reject) {
+        //
+        // });
+        //
+        //
+        //    promise.then(res => {
+             //
+            //  var content = {
+            //    "hasDisplaySpeechOutput":  "The chart was built ",
+            //    "hasDisplayRepromptText": "The chart was built",
+            //    "simpleCardTitle": 'The chart was built',
+            //    "simpleCardContent": 'The chart of '+value+'was built',
+            //    "bodyTemplateTitle": 'The chart was built',
+            //    "bodyTemplateContent": 'The chart of '+value+'was built',
+            //    "templateToken": "factBodyTemplate",
+            //    "askOrTell": ":ask",
+            //    "imageUrl":res,
+            //    "sessionAttributes": {
+            //      "STATE": states.STARTMODE
+            //    }
+            //  };
+            //  renderTemplate2.call(this, content);
+             //
+             //
+          //  }).catch(res => {
+          //    this.emitWithState('NewSession');
+          //    console.log('catch8'+res);
+           //
+          //  });
+
+
+
+         },
+
 
       'DiagramIntent': function() {
         var self = this;
@@ -427,11 +964,11 @@ var startGameHandlers = Alexa.CreateStateHandler(states.STARTMODE, {
 
                  var content = {
                    "hasDisplaySpeechOutput":  "The chart was built ",
-                   "hasDisplayRepromptText": "randomFact1",
-                   "simpleCardTitle": 'SKILL_NAME',
-                   "simpleCardContent": "res",
-                   "bodyTemplateTitle": '',
-                   "bodyTemplateContent": "",
+                   "hasDisplayRepromptText": "The chart was built",
+                   "simpleCardTitle": 'The chart was built',
+                   "simpleCardContent": 'The chart of '+value+'was built',
+                   "bodyTemplateTitle": 'The chart was built',
+                   "bodyTemplateContent": 'The chart of '+value+'was built',
                    "templateToken": "factBodyTemplate",
                    "askOrTell": ":ask",
                    "imageUrl":res,
@@ -1410,14 +1947,14 @@ function renderTemplate2(content) {
           "ssml": "<speak>" + content.hasDisplayRepromptText + "</speak>"
         }
       },
-      "shouldEndSession": content.askOrTell == ":tell",
+      "shouldEndSession": true,///content.askOrTell == ":tell",
       "card": {
         "type": "Simple",
         "title": content.simpleCardTitle,
         "content": content.simpleCardContent
       }
     },
-    "sessionAttributes": content.sessionAttributes
+    "sessionAttributes": ""//content.sessionAttributes
   }
   ;
 
