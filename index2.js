@@ -132,7 +132,14 @@ var reg = function(){return autpip(PSI_ROZA.HOST +
 }).then(token=>{
 console.log("ttt "+token);
   return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-    "/postCSALogin.do?token=" + token)
+    "/postCSALogin.do?token=" + token).then(res=>{
+      var obj = parse(res);
+      var status  = obj['root']['children'][0]['children'][0]['content'];
+      if(status!==0) throw new Error('123'); 
+    }).catch(res => {
+      console.log('catch31'+res);
+      this.emit(':tell', 'Connection error, restart the skill ');
+    });
 
 
 
@@ -267,9 +274,11 @@ var c = function(){
 }
 
 
-conn.then(() => {
-  var from = '26.08.2017';
-  var to = '28.08.2017';
+conn.then((res) => {
+  console.log('catch12'+"res");
+}).catch((res) => {
+console.log('catch12'+"res");
+});;/*
   return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
     "/private/payments/list.do?from="+
     from+"&to="+to+
@@ -389,24 +398,10 @@ console.log("///////////////////////////////////////////////");
 shuffledMultipleChoiceList.forEach(item => console.log(item));
 
 
-// negative.forEach(item => console.log(item));
-
-
-// console.log(sortNeg);
-// console.log(sortPos);
-// console.log(Object.keys(sortNeg).length);
-// console.log(Object.keys(sortPos).length);
-
-
-// for(var key in sortPos){
-//   console.log("key "+key.substring(key.indexOf(".")+1,key.length)+" value "+sortPos[key]);
-// };
-// console.log(unique2(sortPos));
-// console.log(unique2(sortNeg));
-      ///console.log(negative);
     }).catch((res) => {
     console.log('catch10'+res);
     });
     }).catch((res) => {
     console.log('catch12'+"res");
     });
+*/

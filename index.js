@@ -1,11 +1,14 @@
 'use strict';
 const PSI_ROZA = {
-  LOGIN: "9882974166",//"3554678395",
+ // LOGIN: "9882974166",
+  LOGIN: "3554678395",
   HOST: "http://194.186.207.23",
   HOST_BLOCK: "http://194.186.207.23",
   SMS_PASS: "55098",
-  mGUID: "93d727547c5b97ae9dbc9a4bfc41f294",//"4856a406c200643f529efd6fe5e90fae",
-  token: "6abe40afbd29b0d2ac19f1f9052d0d4d",//"59821587bc4405b466f4fc6e731efa16",
+  // mGUID: "93d727547c5b97ae9dbc9a4bfc41f294",
+  // token: "6abe40afbd29b0d2ac19f1f9052d0d4d",
+  mGUID: "4856a406c200643f529efd6fe5e90fae",
+  token: "59821587bc4405b466f4fc6e731efa16",
   PASS: "11223",
   PFMtoken: "b02ddd9811f476eebfbce27ca8f404b1"
 };
@@ -52,7 +55,7 @@ axiosCookieJarSupport(axios);
 const cookieJar = new tough.CookieJar();
 
 var instance = axios.create({
-  timeout: 300000,
+  timeout: 45000,
   jar: cookieJar, // tough.CookieJar or boolean
   withCredentials: true,
   responseType:'stream',
@@ -67,14 +70,15 @@ var instance = axios.create({
 
 
 var autpip = function(addr) {
+  var self = this;
   var promise = new Promise(function(resolve, reject) {
     instance.get(addr).then(res => {
       res.data.pipe(iconv.decodeStream("win1251")).collect((err, body) => {
         resolve(body);
       });
     }).catch(err => {
-
-      this.emit(':tell', 'Connectiion error ');
+        conn = null;
+      self.emit(':tell', 'Connectiion error ');
       console.log('catch1'+err);
       reject(err)
     })
@@ -83,8 +87,10 @@ var autpip = function(addr) {
   return promise.then(res => {
     return res
   }).catch(err => {
-    this.emit(':tell', 'Connection error, restart the skill ');
+      conn = null;
     console.log('catch2'+err);
+    self.emit(':tell', 'Connection error, restart the skill ');
+
   })
 };
 function isEmpty(obj,val) {
@@ -117,12 +123,12 @@ var count=0;
   return obj; // или собрать ключи перебором для IE8-
 };
 
-var conn2;
-var autpip2;
+
 
 var reg = function(){
+  var self = this;
     try{
-  return autpip(PSI_ROZA.HOST +
+  return autpip.call(self,PSI_ROZA.HOST +
     '/CSAMAPI/registerApp.do?operation=register&login=' + PSI_ROZA.LOGIN +
     '&version=' + GLOBALS.VERSION +
     '.10&appType=iPhone&appVersion=5.5.0&deviceName=Simulator&devID=' +
@@ -132,22 +138,23 @@ var reg = function(){
       console.log("mguid = "+mGUID);
       return mGUID
     }).then(mGUID=>{
-      return autpip(PSI_ROZA.HOST +
+      return autpip.call(self,PSI_ROZA.HOST +
         "/CSAMAPI/registerApp.do?operation=confirm&mGUID=" +
         mGUID + "&smsPassword=" + PSI_ROZA.SMS_PASS + "&version=" + GLOBALS.VERSION +
         ".10&appType=iPhone").then(()=>{
           console.log("mguid = "+mGUID);
           return mGUID;
         }).catch(res => {
-          this.emit(':tell', 'Connection error, restart the skill ');
           console.log('catch3'+res);
+          self.emit(':tell', 'Connection error, restart the skill ');
+
           });
 
     //  console.log(res);
 
   }).then(mGUID=>{
 
-     return autpip(PSI_ROZA.HOST +
+     return autpip.call(self,PSI_ROZA.HOST +
       "/CSAMAPI/registerApp.do?operation=createPIN&mGUID=" +
       mGUID + "&password=" + PSI_ROZA.PASS + "&version=" + GLOBALS.VERSION +
       ".10&appType=iPhone" +
@@ -158,8 +165,9 @@ var reg = function(){
         console.log("token = "+token);
         return token;
       }).catch(res => {
-        this.emit(':tell', 'Connection error, restart the skill ');
         console.log('catch4'+res);
+        self.emit(':tell', 'Connection error, restart the skill ');
+
       return res;
                     // reject(0);
                     //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
@@ -167,18 +175,25 @@ var reg = function(){
   //  console.log(res);
 }).then(token=>{
 
-  return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-    "/postCSALogin.do?token=" + token).catch(res => {
-      this.emit(':tell', 'Connection error, restart the skill ');
+  return autpip.call(self,PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+    "/postCSALogin.do?token=" + token).then(res=>{
+      var obj = parse(res);
+      var status  = obj['root']['children'][0]['children'][0]['content'];
+      console.log(obj['root']['children'][0]['children'][0]);
+      console.log("status "+status);
+      if(parseInt(status)!==0) throw new Error('Login error');
+    }).catch(res => {
+        conn = null;
       console.log('catch31'+res);
-    return res;
+      this.emit(':tell', 'Connection error, restart the skill ');
     });
 
 
   //console.log(token);
 }).catch(res => {
-  this.emit(':tell', 'Connection error, restart the skill ');
   console.log('catch5'+res);
+  this.emit(':tell', 'Connection error, restart the skill ');
+
 return res;
 });
 
@@ -266,7 +281,7 @@ var states = {
   ENDMODE: '_ENDMODE'
 };
 //var conn =  connect();
-var conn;//= reg();;
+var conn= null;
 
 var newSessionHandlers = {
   'AMAZON.HelpIntent': function() {
@@ -314,9 +329,10 @@ this.emit(':ask', message, message);
     },
   'NewSession': function() {
      conn=null;
-      conn = reg();
+     //this.attributes['status']=false;
+      // conn = reg();
     this.handler.state = states.STARTMODE;
-    var message = "Welcome to bank account checker. Say invocation phrase of the required action."
+    var message = "Welcome to bank account checker. First, connect to the server by saying the word connect, and then say the call phrase for the desired action."
     this.emit(':ask', message,message);
     //'Say yes to start the game or no to quit.
   },
@@ -400,307 +416,241 @@ this.emit(':ask', message, message);
         this.context.succeed(response);
       },
 
-      'eventIntent': function() {
 
 
-        var self = this;
-        function compareNumeric(a, b) {
-          var att = a.amount.replace(/\s/g, "");
-          var btt = b.amount.replace(/\s/g, "");
-          if (parseInt(att) > parseInt(btt)) return 1;
-          if (parseInt(att) < parseInt(btt)) return -1;
-        };
-        var value = "cards";//this.event.request.intent.slots.dg.value;
-        console.log(" value  - "+ value);
-        if(value === null)
-        this.emit(':ask', value, "sorry");
+'Connector':function(){
+  var slotValue = this.event.request.intent.slots.connect.value;
+  if (slotValue!=="connect")this.emitWithState("Unhandled");
+  var self = this;
+  if(conn === null || conn === undefined){conn = reg.call(this);}
+  conn.then((res) => {
+    console.log("<><><><><><><><><><><><>");
+console.log(res);
+    //this.handler.state = states.STARTMODE;
+    var response = {
 
-         //var promise = new Promise(function(resolve, reject) {
-
-           //var value = this.event.request.intent.slots.dg.value || null;
-
-
-        conn.then(() => {
-
-          return autpip.call(self,PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-    "/private/payments/list.do?from=08.11.2000&to=01.03.2018&paginationSize=100000&paginationOffset=0").then((res) => {
-
-
-              var obj = parse(res);
-
-              var str = "";
-              var s = "";
-              var shuffledMultipleChoiceList = [];
-
-
-                  var dg = 'card';
-                  var arr2 = [];
-
-              var tvalue = 'operation';
-              var arr = ["id", "operationAmount"];
-              var myobj = t(obj.root,tvalue, arr);
-              //console.log(myobj.operations.length);
-
-              myobj.operations.forEach(function(item, i) {
-
-          var id = item.id || "not type";
-          id = id.replace(/[^\d\sA-Za-zА-Яа-я]/gi, "");
-          var amount = item.amount || 0;
-          amount = Math.round(parseInt(amount)) + "";
-          var obj = {id,amount};
-
-          if (amount !=0) {
-            //console.log(amount);
-            str += i + 1 + amount + "<br/>";
-            arr2.push(obj);
-
-          //  str2 += i + 1 + ", " + type + ", " + form + ", " + date + ", " + amount + " " + code + ", next,";
-
-          };
-        });
-
-        arr2.sort(compareNumeric);
-
-
-        arr2.forEach(function(item, i) {
-          console.log(item.id+" - "+item.amount);
-
-        });
-        console.log(arr2.length);
-
-
-        this.emit(':ask', "success");
-
-
-      }).catch(res => {
-        this.emitWithState('NewSession');
-        console.log('catch8'+res);
-
-      });
-    }).catch(res => {
-      this.emitWithState('NewSession');
-      console.log('catch8'+res);
-
-    });
-
-/*
-
-              arr = [];
-
-              var arr2 = [];
-              pie.setTransparentBackground();
-              pie.addPercent();
-
-              myobj.operations.forEach(function(item, i) {
-                var ttt = item.balance.replace(/\s/g, "");
-                if (parseInt(ttt) > 0) {
-                  arr2.push(item);
-                  // pie.addData(parseInt(ttt), "id = " + item.id + " ", c());
-                  // arr.push(parseInt(ttt));
-                  //
-                  // shuffledMultipleChoiceList.push(item.id + " | balance = " + item.balance + " ₽");
-                  // console.log(item.id + " | balance = " + item.balance + " ₽");
-                }
-              });
-              arr2.sort(compareNumeric);
-              arr2.reverse() ;
-
-              for (var i = 0; i < arr2.length; i++) {
-                var ttt = arr2[i].balance.replace(/\s/g, "");
-                console.log(ttt);
-                pie.addData(parseInt(ttt), "id = " + arr2[i].id + " ", c());
-                arr.push(parseInt(ttt));
-
-                shuffledMultipleChoiceList.push(arr2[i].id + " | balance = " + arr2[i].balance + " ₽");
-                console.log(arr2[i].id + " | balance = " + arr2[i].balance + " ₽");
-              };
-
-              // myobj.operations.forEach(function(item, i) {
-              //   var ttt = item.balance.replace(/\s/g, "");
-              //   if (parseInt(ttt) > 0 {
-              //     pie.addData(parseInt(ttt), "id = " + item.id + " ", c());
-              //     arr.push(parseInt(ttt));
-              //
-              //     shuffledMultipleChoiceList.push(item.id + " | balance = " + item.balance + " ₽");
-              //     console.log(item.id + " | balance = " + item.balance + " ₽");
-              //   }
-              // });
-              //arr.reverse() ;
-              pie.setLabel(arr);
-              var Url = pie.getUrl(true);
-              pie =  new Quiche('pie');
-              resolve(Url);
-
-              })
-              .catch(res => {
-                console.log('catch6'+res);
-
-                  self.emitWithState('NewSession');
-
-              // reject(0);
-              //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
-              });
-
-              }).catch(res => {
-                console.log('catch7'+res);
-
-                  self.emitWithState('NewSession');
-              reject(res)
-              // reject(0);
-              //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
-              });
-            });
-
-
-               promise.then(res => {
-
-                 var content = {
-                   "hasDisplaySpeechOutput":  "The chart was built ",
-                   "hasDisplayRepromptText": "randomFact1",
-                   "simpleCardTitle": 'SKILL_NAME',
-                   "simpleCardContent": "res",
-                   "bodyTemplateTitle": '',
-                   "bodyTemplateContent": "",
-                   "templateToken": "factBodyTemplate",
-                   "askOrTell": ":ask",
-                   "imageUrl":res,
-                   "sessionAttributes": {
-                     "STATE": states.STARTMODE
-                   }
-                 };
-                 renderTemplate2.call(this, content);
-
-*/
-
-
-
-        // this.handler.state = states.STARTMODE;
-        //
-        // var slotValuefrom = this.event.request.intent.slots.datefrom.value||this.attributes['slotValuefrom']||this.attributes['startstr']||null;
-        // var slotValueto = this.event.request.intent.slots.dateto.value||this.attributes['slotValueto']||this.attributes['endstr']||null;
-        // var slotDate = this.event.request.intent.slots.date.value || null;
-        // console.log(slotValuefrom+" to "+slotValueto);
-        //     var arr = getDate.call(this,this.attributes['startstr'],this.attributes['endstr'],slotValuefrom,slotValueto,slotDate);
-        //
-        //   this.attributes['startstr'] = arr[0];
-        //   this.attributes['endstr'] = arr[1];
-        //   this.attributes['slotValuefrom'] = undefined;
-        //   this.attributes['slotValueto'] = undefined;
-        //   var str = "start: "+arr[0]+" - end: " + arr[1];
-        //   this.emit(':askWithCard', str, "haveEventsRepromt", "cardTitle", str);
-        //   //  this.emit(':ask', "start: "+new Date(eventDate.startDate)+" - end: " + new Date(eventDate.endDate), HelpMessage);
-
+    "version": "1.0",
+    "response": {
+      "outputSpeech": {
+        "ssml": "<speak> success  </speak>",
+        "type": "SSML"
       },
+      "speechletResponse": {
+        "outputSpeech": {
+          "ssml": "<speak> success  </speak>"
+        },
+        "shouldEndSession": false
+      }
+    },
+    "sessionAttributes": {
+      "STATE": "_STARTMODE",
+      "status":true
+    }
 
-      'DiagramBar': function() {
-        var self = this;
+    };
+    self.context.succeed(response);
 
 
-        conn.then(() => {
-          var from = '26.08.2017';
-          var to = '28.08.2017';
-          return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
-            "/private/payments/list.do?from="+
-            from+"&to="+to+
-            "&paginationSize=99999&paginationOffset=0"
-          )
-          .then((res) => {
-                var obj = parse(res);
-                //console.log(obj.root);
 
-                var shuffledMultipleChoiceList = [];
-                var arr = ["type", "form", "date", "operationAmount"];
-                var myobj = t(obj.root, 'operation', arr);
-                var str = "";
-                //var readstr = [];
-                var j=0;
-                myobj.operations.forEach(function(item, i) {
-                  //if((parseInt(item.amount)!=0)&&(!isNaN(parseInt(item.amount)))){
-                    var type = item.type || "not type";
-                    type =type.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
-                    var form = item.form || "not type";
-                    form = form.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
-                    var date =item.date || "npt date T ";
-                    date =date.split("T")[0]+"";
-                    date = date.replace(/[^\d\sA-Za-zА-Яа-я/.]/gi,"");
-                    var amount = item.amount || 0;
-                    amount = Math.round(parseInt(amount));
-                    var code = item.code || "not code";
-                    code =code.replace(/[^\d\sA-Za-zА-Яа-я]/gi,"");
-                    if (amount!==0){
-                      j++;
-                      //console.log(j+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>");
-                      shuffledMultipleChoiceList.push({"date":date,"amount":amount})
+//this.emit(':ask', "ok ");
+  }).catch((res) => {
+    conn = null;
+  //  self.attributes['status'] = false;
+    console.log('connect error' + res);
+    self.emit(':tell', "connection unsuccessful ");
 
-                    }
-                                  //str +=i+1+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>";
-              });
+  });
+},
 
-        shuffledMultipleChoiceList = (function(){
-        if (shuffledMultipleChoiceList.length > 100 && from!==to) {
-          console.log(">100");
-          var positive = shuffledMultipleChoiceList.filter(function(item) {
-            return item.amount > 0;
+
+'DiagramBar': function() {
+  var sentence=[];
+   sentence.push("Each column corresponds to each translation") ;
+   sentence.push("Each column corresponds to all translations in one day");
+   sentence.push("Each column corresponds to all translations in one month");
+  var phrase = sentence[0];
+
+
+
+  function randomInteger(min, max) {
+      var rand = min - 0.5 + Math.random() * (max - min + 1)
+      rand = Math.round(rand);
+      return rand;
+    }
+
+
+
+  var self = this;
+
+
+console.log(this.attributes['status']);
+
+if((this.attributes['request'] == '4117')||(this.attributes['request'] == '4118'))
+this.emit(":ask", "Don't work for this request", "Don't work for this request");
+
+if(!this.attributes['status'] && (conn === null))
+this.emit(":ask", "First, connect to the server by saying the word connect", "First, connect to the server by saying the word connect");
+
+var slotValuefrom = this.event.request.intent.slots.datefrom.value||this.attributes['slotValuefrom']||null;
+var slotValueto = this.event.request.intent.slots.dateto.value||this.attributes['slotValueto']||null;
+var slotDate = this.event.request.intent.slots.date.value || null;
+var sortval = this.event.request.intent.slots.sort.value|| null;
+
+console.log(">>> "+slotValuefrom+" : "+slotValueto+" : "+slotDate);
+// console.log(slotValuefrom+" to "+slotValueto);
+
+var arr = getDate.call(this,this.attributes['startstr'],this.attributes['endstr'],slotValuefrom,slotValueto,slotDate);
+
+
+    this.attributes['startstr'] = arr[0];
+    this.attributes['endstr'] = arr[1];
+
+
+
+  this.attributes['slotValuefrom'] = undefined;
+  this.attributes['slotValueto'] = undefined;
+
+  if (this.attributes['startstr'] === undefined || this.attributes['endstr'] === undefined) { // Check if it's the first time the skill has been invoked
+this.emit(":ask", "repeat the date", "repeat the date");
+}
+
+
+  var self = this;
+try {
+  conn.then(() => {
+
+
+    return autpip.call(self, PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
+        "/private/payments/list.do?from=" +
+        this.attributes['startstr'] + "&to=" + this.attributes['endstr'] +
+        //from + "&to=" + to +
+        "&paginationSize=99999&paginationOffset=0"
+      )
+      .then((res) => {
+        var obj = parse(res);
+        console.log(obj.root);
+        //console.log(obj.root);
+
+        var shuffledMultipleChoiceList = [];
+        var arr = ["type", "form", "date", "operationAmount"];
+        var myobj = t(obj.root, 'operation', arr);
+        var str = "";
+        //var readstr = [];
+        var j = 0;
+        console.log("count myobj " + myobj.operations.length);
+        // if (myobj.operations.length == 0) {
+        //   console.log(res);
+        //   this.emitWithState('NewSession');
+        // }
+        myobj.operations.forEach(function(item, i) {
+          //if((parseInt(item.amount)!=0)&&(!isNaN(parseInt(item.amount)))){
+          var type = item.type || "not type";
+          type = type.replace(/[^\d\sA-Za-zА-Яа-я]/gi, "");
+          var form = item.form || "not type";
+          form = form.replace(/[^\d\sA-Za-zА-Яа-я]/gi, "");
+          var date = item.date || "not date";
+          date = date.split("T")[0] + "";
+          date = date.replace(/[^\d\sA-Za-zА-Яа-я/.]/gi, "");
+          var amount = item.amount || 0;
+          amount = Math.round(parseInt(amount));
+          var code = item.code || "not code";
+          code = code.replace(/[^\d\sA-Za-zА-Яа-я]/gi, "");
+          if (amount !== 0) {
+            j++;
+            //console.log(j+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>");
+            shuffledMultipleChoiceList.push({
+              "date": date,
+              "amount": amount
+            })
+
+          }
+          //str +=i+1+" "+type+" "+ form + " | " + date+ " | " + amount + " | " + code+"<br/>";
         });
-          var negative = shuffledMultipleChoiceList.filter(function(item) {
-            return item.amount < 0;
-          });
-          console.log(positive.length);
-          var sortNeg = unique(negative);
-          //console.log(sortNeg.length);
-          var sortPos = unique(positive);
-          if ((Object.keys(sortNeg).length+Object.keys(sortPos).length) > 100) {
-            console.log("2 >100");
-            sortPos = unique2(sortPos);
-            sortNeg = unique2(sortNeg);
-            shuffledMultipleChoiceList = [];
-            for (var variable in sortPos) {
-              shuffledMultipleChoiceList.push({"date":variable,"amount":sortPos[variable]})
-            };
-            for (var variable in sortNeg) {
-              shuffledMultipleChoiceList.push({"date":variable,"amount":sortNeg[variable]})
+
+        shuffledMultipleChoiceList = (function() {
+          if (shuffledMultipleChoiceList.length > 100 && self.attributes['startstr'] !== self.attributes['endstr']) {
+             phrase = sentence[1];
+            console.log(">100");
+            var positive = shuffledMultipleChoiceList.filter(function(item) {
+              return item.amount > 0;
+            });
+            var negative = shuffledMultipleChoiceList.filter(function(item) {
+              return item.amount < 0;
+            });
+            console.log(positive.length);
+            var sortNeg = unique(negative);
+            //console.log(sortNeg.length);
+            var sortPos = unique(positive);
+            if ((Object.keys(sortNeg).length + Object.keys(sortPos).length) > 100) {
+               phrase = sentence[2];
+              console.log("2 >100");
+              sortPos = unique2(sortPos);
+              sortNeg = unique2(sortNeg);
+              shuffledMultipleChoiceList = [];
+              for (var variable in sortPos) {
+                shuffledMultipleChoiceList.push({
+                  "date": variable,
+                  "amount": sortPos[variable]
+                })
+              };
+              for (var variable in sortNeg) {
+                shuffledMultipleChoiceList.push({
+                  "date": variable,
+                  "amount": sortNeg[variable]
+                })
+              }
+
+              return shuffledMultipleChoiceList
+            } else {
+              shuffledMultipleChoiceList = [];
+              for (var variable in sortPos) {
+                shuffledMultipleChoiceList.push({
+                  "date": variable,
+                  "amount": sortPos[variable]
+                })
+              };
+              for (var variable in sortNeg) {
+                shuffledMultipleChoiceList.push({
+                  "date": variable,
+                  "amount": sortNeg[variable]
+                })
+              }
+
+              return shuffledMultipleChoiceList
             }
 
-            return shuffledMultipleChoiceList
+          } else {
+            //console.log(shuffledMultipleChoiceList);
+            return shuffledMultipleChoiceList;
           }
-          else {
-            shuffledMultipleChoiceList = [];
-            for (var variable in sortPos) {
-              shuffledMultipleChoiceList.push({"date":variable,"amount":sortPos[variable]})
-            };
-            for (var variable in sortNeg) {
-              shuffledMultipleChoiceList.push({"date":variable,"amount":sortNeg[variable]})
-            }
-
-            return shuffledMultipleChoiceList
-          }
-
-        }
-
-        else{
-          //console.log(shuffledMultipleChoiceList);
-          return shuffledMultipleChoiceList;
-        }
         })();
 
         console.log(shuffledMultipleChoiceList);
 
         console.log(shuffledMultipleChoiceList.length);
 
-        //
-        if(shuffledMultipleChoiceList.length>0 && (shuffledMultipleChoiceList[0].date.split(".").length - 1)==2){
-        shuffledMultipleChoiceList.sort(function(a,b){
+        if(shuffledMultipleChoiceList.length ==0){
+          this.emit(':ask', "no results for this date","no results for this date");
+        };
+        if ( (shuffledMultipleChoiceList[0].date.split(".").length - 1) == 2) {
+          shuffledMultipleChoiceList.sort(function(a, b) {
 
-        if (moment(a.date, "DD.MM.YYYY")>moment(b.date, "DD.MM.YYYY")) {return 1}
-        else{return -1}
+            if (moment(a.date, "DD.MM.YYYY") > moment(b.date, "DD.MM.YYYY")) {
+              return 1
+            } else {
+              return -1
+            }
 
-        });
-        }else{
+          });
+        } else {
           console.log("else");
-          shuffledMultipleChoiceList.sort(function(a,b){
+          shuffledMultipleChoiceList.sort(function(a, b) {
 
-          if (moment("01."+a.date, "DD.MM.YYYY")>moment("01."+b.date, "DD.MM.YYYY")) {return 1}
-          else{return -1}
+            if (moment("01." + a.date, "DD.MM.YYYY") > moment("01." + b.date, "DD.MM.YYYY")) {
+              return 1
+            } else {
+              return -1
+            }
 
           });
         };
@@ -709,135 +659,114 @@ this.emit(':ask', message, message);
 
 
         shuffledMultipleChoiceList.reduce(function(previousValue, currentItem, index) {
-          if (previousValue.date.trim()==currentItem.date) {
-           currentItem.date=previousValue.date+" ";
-         };
-             return currentItem
+
+          if (previousValue.date.trim() == currentItem.date) {
+            currentItem.date = previousValue.date + " ";
+            //console.log("currentItem.date = "+currentItem.date+" previousValue.date = "+ previousValue.date);
+          };
+          return currentItem
         });
+        if (sortval == "value"){
+          shuffledMultipleChoiceList.sort(function(a, b) {
+
+            if (a.amount > b.amount) {
+              return 1
+            } else {
+              return -1
+            }
+
+          });
+        };
+
+
+        //
+        // shuffledMultipleChoiceList.reduce(function(previousValue, currentItem, index) {
+        //   if (previousValue.date == currentItem.date) {
+        //     console.log("currentItem.date = "+currentItem.date+" previousValue.date = "+ previousValue.date);
+        //   };
+        // });
+
+
+
+
         console.log("///////////////////////////////////////////////");
         shuffledMultipleChoiceList.forEach(item => console.log(item));
 
-        axios2.post('https://google-chart.herokuapp.com/rr',shuffledMultipleChoiceList).then(function(res) {
-          console.log("statusCode: ", res.status); // <======= Here's the status code
+
+
+        var self2 = this;
+
+
+
+        axios2.post('https://google-chart.herokuapp.com/rr', shuffledMultipleChoiceList).then(function(res) {
+          console.log("AxiosstatusCode: "+res.status); // <======= Here's the status code
           // console.log("headers: ", res.headers);
-          if(res.status == 200){
-             var content = {
-               "hasDisplaySpeechOutput":  "The chart was built ",
-               "hasDisplayRepromptText": "The chart was built",
-               "simpleCardTitle": 'The chart was built',
-               "simpleCardContent": 'The chart of was built',
-               "bodyTemplateTitle": 'The chart was built',
-               "bodyTemplateContent": 'The chart of was built',
-               "templateToken": "factBodyTemplate",
-               "askOrTell": ":ask",
-               "imageUrl":'https://google-chart.herokuapp.com/ff',
-               "sessionAttributes": {
-                 "STATE": states.STARTMODE
-               }
-             };
-             renderTemplate2.call(self, content);
-          }else{
-            self.emit(':tell',"failed1");
-          }
-            console.log(res.data);
-            console.log(res.status);
-            console.log(res.statusText);
-            // console.log(response.headers);
-            // console.log(response.config);
-          })
-        .catch(res=>console.log(res.status));
+
+ if(res.status==200){
+
+     console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+     console.log(res.data);
+     var seconds = new Date().getTime();
+     var imageUrl = 'https://google-chart.herokuapp.com/ff?'+seconds;
+
+               var content = {
+              "hasDisplaySpeechOutput": "The chart was built. "+phrase,
+              "hasDisplayRepromptText": "The chart was built"+phrase,
+              "simpleCardTitle": '',
+              "simpleCardContent": '',
+              "bodyTemplateTitle": '',
+              "bodyTemplateContent": '',
+              "templateToken": "factBodyTemplate",
+              "askOrTell": ":ask",
+              "imageUrl": imageUrl,
+              "sessionAttributes": {
+                "STATE": states.STARTMODE,
+                "status":true,
+                "startstr":self2.attributes['startstr'],
+                "endstr":self2.attributes['endstr']
+
+              }
+            };
 
 
-            }).catch((res) => {
-            console.log('catch10'+res);
-            });
-            }).catch((res) => {
-            console.log('catch12'+"res");
-            });
+            renderTemplate2.call(self2, content);
 
+}else{
+  this.emit(':tell', "error error");
+}
 
+        }).catch((res) => {
+          this.emit(':tell', "error ");
 
-
-        //
-        // var arr = [ { date: '28.08.2017', amount: 8105 },
-        //   { date: '26.08.2017', amount: 173008 },
-        //   { date: '28.08.2017 ', amount: -48990274 },
-        //   { date: '26.08.2017 ', amount: -8773 } ,
-        //   { date: '28.08.2017    ', amount: 8105 },
-        //     { date: '26.08.2017       ', amount: -173008 },
-        //     { date: '28.08.2017  ', amount: 48990274 },
-        //     { date: '26.08.2017  ', amount: -8773 }];
-
-        //console.log(JSON.stringify(arr));
-
-
-/*
-https.post('https://google-chart.herokuapp.com/', function(req,res) {
-
-  console.log("statusCode: ", res.statusCode); // <======= Here's the status code
-  console.log("headers: ", res.headers);
-  if(res.statusCode == 200){
-     var content = {
-       "hasDisplaySpeechOutput":  "The chart was built ",
-       "hasDisplayRepromptText": "The chart was built",
-       "simpleCardTitle": 'The chart was built',
-       "simpleCardContent": 'The chart of was built',
-       "bodyTemplateTitle": 'The chart was built',
-       "bodyTemplateContent": 'The chart of was built',
-       "templateToken": "factBodyTemplate",
-       "askOrTell": ":ask",
-       "imageUrl":'https://google-chart.herokuapp.com/',
-       "sessionAttributes": {
-         "STATE": states.STARTMODE
-       }
-     };
-     renderTemplate2.call(self, content);
-  }else{
-    self.emit(':tell',"failed1");
-  }
-
-  // res.on('data', function(d) {
-  //   process.stdout.write(d);
-  // });
-
-}).on('error', function(e) {
-  self.emit(':tell',"failed2");
-  console.error(e);
-});
-*/
-        // var promise = new Promise(function(resolve, reject) {
-        //
-        // });
-        //
-        //
-        //    promise.then(res => {
-             //
-            //  var content = {
-            //    "hasDisplaySpeechOutput":  "The chart was built ",
-            //    "hasDisplayRepromptText": "The chart was built",
-            //    "simpleCardTitle": 'The chart was built',
-            //    "simpleCardContent": 'The chart of '+value+'was built',
-            //    "bodyTemplateTitle": 'The chart was built',
-            //    "bodyTemplateContent": 'The chart of '+value+'was built',
-            //    "templateToken": "factBodyTemplate",
-            //    "askOrTell": ":ask",
-            //    "imageUrl":res,
-            //    "sessionAttributes": {
-            //      "STATE": states.STARTMODE
-            //    }
-            //  };
-            //  renderTemplate2.call(this, content);
-             //
-             //
-          //  }).catch(res => {
-          //    this.emitWithState('NewSession');
-          //    console.log('catch8'+res);
-           //
-          //  });
+        });
 
 
 
-         },
+
+
+      }).catch((res) => {
+        console.log('catch10-1(sorry5)' + res);
+        this.attributes['status'] = false;
+        self.emit(":ask", "tell word connect first", "tell word connect first");
+
+      });
+  }).catch((res) => {
+    console.log('catch12-2' + res);
+    this.attributes['status'] = false;
+    self.emit(":ask", "tell word connect first", "tell word connect first");
+
+  });
+} catch (e) {
+  console.log(e);
+  this.attributes['status'] = false;
+  this.emit(":ask", "tell word connect first", "tell word connect first");
+}
+
+
+
+},
+
+
 
 
       'DiagramIntent': function() {
@@ -851,13 +780,13 @@ https.post('https://google-chart.herokuapp.com/', function(req,res) {
         var value = this.event.request.intent.slots.dg.value;
         console.log(" value  - "+ value);
         if(value === null)
-        this.emit(':ask', value, "sorry");
+        this.emit(':ask', value, "sorry7");
 
          var promise = new Promise(function(resolve, reject) {
 
            //var value = this.event.request.intent.slots.dg.value || null;
 
-
+        if(conn === null || conn === undefined){conn = reg.call(self);}
         conn.then(() => {
 
           return autpip.call(self,PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
@@ -873,7 +802,7 @@ https.post('https://google-chart.herokuapp.com/', function(req,res) {
 
               //var dg = true;
 
-                if (typeof value == 'undefined') self.emit(':ask', "sorry", "sorry");
+                if (typeof value == 'undefined') self.emit(':ask', "sorry8", "sorry8");
               switch (value) {
                 case "imaccounts":
                   var dg = 'imaccount';
@@ -903,6 +832,7 @@ https.post('https://google-chart.herokuapp.com/', function(req,res) {
                 var ttt = item.balance.replace(/\s/g, "");
                 if (parseInt(ttt) > 0) {
                   arr2.push(item);
+
                   // pie.addData(parseInt(ttt), "id = " + item.id + " ", c());
                   // arr.push(parseInt(ttt));
                   //
@@ -912,6 +842,7 @@ https.post('https://google-chart.herokuapp.com/', function(req,res) {
               });
               arr2.sort(compareNumeric);
               arr2.reverse() ;
+              if (arr2.length<20){
 
               for (var i = 0; i < arr2.length; i++) {
                 var ttt = arr2[i].balance.replace(/\s/g, "");
@@ -919,25 +850,38 @@ https.post('https://google-chart.herokuapp.com/', function(req,res) {
                 pie.addData(parseInt(ttt), "id = " + arr2[i].id + " ", c());
                 arr.push(parseInt(ttt));
 
-                shuffledMultipleChoiceList.push(arr2[i].id + " | balance = " + arr2[i].balance + " ₽");
+                // shuffledMultipleChoiceList.push(arr2[i].id + " | balance = " + arr2[i].balance + " ₽");
                 console.log(arr2[i].id + " | balance = " + arr2[i].balance + " ₽");
               };
 
-              // myobj.operations.forEach(function(item, i) {
-              //   var ttt = item.balance.replace(/\s/g, "");
-              //   if (parseInt(ttt) > 0 {
-              //     pie.addData(parseInt(ttt), "id = " + item.id + " ", c());
-              //     arr.push(parseInt(ttt));
-              //
-              //     shuffledMultipleChoiceList.push(item.id + " | balance = " + item.balance + " ₽");
-              //     console.log(item.id + " | balance = " + item.balance + " ₽");
-              //   }
-              // });
-              //arr.reverse() ;
+
               pie.setLabel(arr);
               var Url = pie.getUrl(true);
               pie =  new Quiche('pie');
               resolve(Url);
+            }else{
+              for (var i = 0; i < arr2.length; i++) {
+                var ttt = arr2[i].balance.replace(/\s/g, "");
+              shuffledMultipleChoiceList.push({
+                "date": "id "+arr2[i].id,
+                "amount": parseInt(ttt)
+              });
+            };
+
+            axios2.post('https://google-chart.herokuapp.com/rr', shuffledMultipleChoiceList).then(function(res) {
+              console.log("AxiosstatusCode: "+res.status); // <======= Here's the status code
+              // console.log("headers: ", res.headers);
+
+              if(res.status==200){
+                var seconds = new Date().getTime();
+                var imageUrl = 'https://google-chart.herokuapp.com/ff?'+seconds;
+                resolve(imageUrl);
+
+              }
+            });
+
+
+            }
 
               })
               .catch(res => {
@@ -965,10 +909,10 @@ https.post('https://google-chart.herokuapp.com/', function(req,res) {
                  var content = {
                    "hasDisplaySpeechOutput":  "The chart was built ",
                    "hasDisplayRepromptText": "The chart was built",
-                   "simpleCardTitle": 'The chart was built',
-                   "simpleCardContent": 'The chart of '+value+'was built',
-                   "bodyTemplateTitle": 'The chart was built',
-                   "bodyTemplateContent": 'The chart of '+value+'was built',
+                   "simpleCardTitle": '',
+                   "simpleCardContent": '',
+                   "bodyTemplateTitle": '',
+                   "bodyTemplateContent": '',
                    "templateToken": "factBodyTemplate",
                    "askOrTell": ":ask",
                    "imageUrl":res,
@@ -996,10 +940,10 @@ https.post('https://google-chart.herokuapp.com/', function(req,res) {
 
         var countitems = this.attributes['countitems'];
         var request = this.attributes['request'];
-        if (typeof request == 'undefined') this.emit(':ask', "repeat", "repeat");
+        if (typeof request == 'undefined') this.emit(':ask', "repeat please", "repeat please");
 
         if (typeof this.attributes['countitems'] == 'undefined') {
-          this.emit(':tell', "sorry")
+          this.emit(':ask', "The number of elements is zero ","The number of elements is zero ")
         }
         if (typeof this.attributes['currentpage'] == 'undefined') {
           var currentpage = 0;
@@ -1034,7 +978,7 @@ console.log("currentpage = "+currentpage);
             break;
 
           default:
-            this.emit(':ask', "repeat", "repeat");
+            this.emit(':ask', "repeat navigation request", "repeat navigation request");
             break;
         }
         var str = "";
@@ -1042,7 +986,7 @@ console.log("currentpage = "+currentpage);
 
         switch (request) {
           case '412astext':
-          if ((typeof this.attributes['startstr'] == 'undefined')||(typeof this.attributes['endstr'] == 'undefined')) {this.emit(':ask', "sorry", "sorry");}
+          if ((typeof this.attributes['startstr'] == 'undefined')||(typeof this.attributes['endstr'] == 'undefined')) {this.emit(':ask', "Repeat date", "Repeat date");}
           var reqstr = PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
             "/private/payments/list.do?from="+
             this.attributes['startstr']+"&to="+this.attributes['endstr']+
@@ -1063,6 +1007,7 @@ console.log("currentpage = "+currentpage);
         }
 
 try{
+                      if(conn === null || conn === undefined){conn = reg.call(this);}
                       conn.then(() => {
                       //  {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?from=08.11.2010&to=31.03.2018&paginationSize=200&paginationOffset=0
                         return autpip(reqstr).then((res) => {
@@ -1182,6 +1127,7 @@ try{
                     });
 
                   } catch (err) {
+                    this.attributes['status']=false;
                     this.emitWithState('NewSession');
 
             console.log('catch20'+err);
@@ -1199,7 +1145,7 @@ try{
         var currentpage = this.attributes['currentpage'];
         var request = this.attributes['request'];
         var countitems = this.attributes['countitems'];
-        if (typeof request == 'undefined') this.emit(':ask', "repeat", "repeat");
+        if (typeof request == 'undefined') this.emit(':ask', "repeat please", "repeat please");
 //
 // function currency(val){
 //   switch (val) {
@@ -1243,6 +1189,7 @@ var tc = currentpage*50+50;
 
 
 try{
+  if(conn === null || conn === undefined){conn = reg.call(this);}
 conn.then(() => {
 //  {{HOST_BLOCK}}/mobile{{VERSION}}/private/payments/list.do?from=08.11.2010&to=31.03.2018&paginationSize=200&paginationOffset=0
   return autpip(reqstr).then((res) => {
@@ -1340,7 +1287,8 @@ console.log(countitems);
        'ondate':this.attributes['ondate'],
        'onmonth':this.attributes['onmonth'],
        'currentpage':currentpage,
-       'request':this.attributes['request']
+       'request':this.attributes['request'],
+       'status':this.attributes['status']
        //,
        //'readstr':readstr                     //'bodyTemplateContent':str
      }
@@ -1368,6 +1316,7 @@ console.log('catch1'+res);
 
 
                   } catch (err) {
+                    this.attributes['status']=false;
                             this.emitWithState('NewSession');
 
                     console.log('catch20'+err);
@@ -1379,6 +1328,7 @@ console.log('catch1'+res);
       },
 
       'HelloWorldIntent': function() {
+        if(conn === null || conn === undefined){this.emit(":ask", "tell word connect first", "tell word connect first");}
 
 
         var value = this.event.request.intent.slots.hi.value;
@@ -1414,6 +1364,7 @@ console.log('catch1'+res);
           }
 
           try{
+
           conn.then(() => {
 
             return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
@@ -1459,7 +1410,8 @@ console.log('catch1'+res);
                  'onmonth':this.attributes['onmonth'],
                  "countitems":shuffledMultipleChoiceList.length,
                  'currentpage':0,
-                 'request':'4117'
+                 'request':'4117',
+                 'status':this.attributes['status']
                }
             };
 
@@ -1483,6 +1435,7 @@ console.log('catch9'+res);
 console.log('catch10'+res);
 });
 } catch (err) {
+  this.attributes['status']=false;
   this.emitWithState('NewSession');
 
 console.log('catch21'+err);
@@ -1499,6 +1452,7 @@ console.log('catch21'+err);
             //this.attributes['ondate'] = "03.03.2017";
           }
           try{
+
           conn.then(() => {
 
             return autpip(PSI_ROZA.HOST_BLOCK + "/mobile" + GLOBALS.VERSION +
@@ -1538,7 +1492,8 @@ console.log('catch21'+err);
                  "countitems":myobj.operations.length,
                  'ondate':this.attributes['ondate'],
                  'currentpage':0,
-                 'request':'4118'//,
+                 'request':'4118',
+                 'status':this.attributes['status']
                  //'readstr':readstr                     //'bodyTemplateContent':str
                }
             };
@@ -1565,6 +1520,7 @@ console.log('catch11'+res);
                         //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
                       });
         } catch (err) {
+          this.attributes['status']=false;
           this.emitWithState('NewSession');
 
   console.log('catch22'+err);
@@ -1635,7 +1591,8 @@ console.log('catch11'+res);
                         "startstr":this.attributes['startstr'],
                         "endstr":this.attributes['endstr'],
                         'currentpage':0,
-                        'request':'412astext'
+                        'request':'412astext',
+                        'status':this.attributes['status']
                       }
                   };
 
@@ -1649,12 +1606,14 @@ console.log('catch12'+res);
                 //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
               });
             }).catch((res) => {
+              this.attributes['status']=false;
               this.emitWithState('NewSession');
 console.log('catch33'+res);
               // reject(0);
               //this.emit(':tellWithCard', "success", cardTitle, res + cardContent, imageObj);
             });;
           } catch (err) {
+            this.attributes['status']=false;
             this.emitWithState('NewSession');
 
     console.log('catch23'+err);
@@ -1719,7 +1678,8 @@ try {
                      "startstr":this.attributes['startstr'],
                      "endstr":this.attributes['endstr'],
                      'currentpage':0,
-                     'request':'412astext'//,
+                     'request':'412astext',
+                     'status':this.attributes['status']
                      //'readstr':readstr                     //'bodyTemplateContent':str
                    }
                 };
@@ -1744,6 +1704,7 @@ console.log('catch13-2'+res);
               console.log('catch1'+res);
             });
           } catch (err) {
+            this.attributes['status']=false;
             this.emitWithState('NewSession');
 
     console.log('catch24'+err);
@@ -1752,7 +1713,7 @@ console.log('catch13-2'+res);
           }
               break;
           default:
-            this.emit(':ask', "nothing", "nothing");
+            this.emit(':ask', "repeat this request", "repeat this request");
             break;
         }
 
@@ -1761,9 +1722,10 @@ console.log('catch13-2'+res);
       },
 
   'Unhandled': function() {
-    console.log("UNHANDLED");
     var message = 'Repeat the name of the recipient.';
-    this.emit(':ask', "nothing", "nothing");
+    this.emit(':ask', message, message);
+    console.log("UNHANDLED2");
+
   }
 });
 
@@ -1947,14 +1909,14 @@ function renderTemplate2(content) {
           "ssml": "<speak>" + content.hasDisplayRepromptText + "</speak>"
         }
       },
-      "shouldEndSession": true,///content.askOrTell == ":tell",
+      "shouldEndSession": content.askOrTell == ":tell",
       "card": {
         "type": "Simple",
         "title": content.simpleCardTitle,
         "content": content.simpleCardContent
       }
     },
-    "sessionAttributes": ""//content.sessionAttributes
+    "sessionAttributes": content.sessionAttributes
   }
   ;
 

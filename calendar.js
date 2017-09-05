@@ -92,14 +92,18 @@ function getWeekendData(res) {
         var saturdayIndex = 5;
         var sundayIndex = 6;
         var weekNumber = res[1].substring(1);
+        console.log("weekNumber - "+weekNumber);
 
         var weekStart = w2date(res[0], weekNumber, saturdayIndex);
         var weekEnd = w2date(res[0], weekNumber, sundayIndex);
+        console.log("weekStart - "+weekStart+" weekEnd - "+weekEnd);
 
-        return Dates = {
+       var Dates = {
             startDate: weekStart,
             endDate: weekEnd,
         };
+        return Dates;
+
     }
 }
 
@@ -115,10 +119,11 @@ function getWeekData(res) {
         var weekStart = w2date(res[0], weekNumber, mondayIndex);
         var weekEnd = w2date(res[0], weekNumber, sundayIndex);
 
-        return Dates = {
+        var Dates = {
             startDate: weekStart,
             endDate: weekEnd,
         };
+        return Dates ;
     }
 }
 
